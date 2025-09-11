@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "containerGroupName": {
+      "value": "finagent-container-group"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "redisName": {
+      "value": "finagent-redis"
+    },
+    "supabaseUrl": {
+      "value": "YOUR_SUPABASE_URL"
+    },
+    "supabaseAnonKey": {
+      "value": "YOUR_SUPABASE_ANON_KEY"
+    },
+    "supabaseServiceKey": {
+      "value": "YOUR_SUPABASE_SERVICE_KEY"
+    },
+    "plaidClientId": {
+      "value": "YOUR_PLAID_CLIENT_ID"
+    },
+    "plaidSecret": {
+      "value": "YOUR_PLAID_SECRET"
+    },
+    "polygonApiKey": {
+      "value": "YOUR_POLYGON_API_KEY"
+    },
+    "alpacaApiKey": {
+      "value": "YOUR_ALPACA_API_KEY"
+    },
+    "alpacaSecretKey": {
+      "value": "YOUR_ALPACA_SECRET_KEY"
+    },
+    "openaiApiKey": {
+      "value": "YOUR_OPENAI_API_KEY"
+    },
+    "anthropicApiKey": {
+      "value": "YOUR_ANTHROPIC_API_KEY"
+    },
+    "groqApiKey": {
+      "value": "YOUR_GROQ_API_KEY"
+    },
+    "mem0ApiKey": {
+      "value": "YOUR_MEM0_API_KEY"
+    }
+  }
+}
