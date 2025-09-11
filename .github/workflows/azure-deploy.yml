@@ -152,38 +152,50 @@ jobs:
 
     - name: Build frontend
       run: |
-        pnpm run build --filter=web
+        cd apps/web
+        pnpm build
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        SKIP_BUILD_PRODUCT_REDIRECTS: 1
 
     - name: Create deployment package
       run: |
         cd apps/web
+        
+        # Copy the built .next directory and necessary files
+        mkdir -p deploy-package
+        cp -r .next deploy-package/
+        cp -r public deploy-package/ 2>/dev/null || true
+        cp package.json deploy-package/
+        cp package-lock.json deploy-package/ 2>/dev/null || true
+        cp next.config.ts deploy-package/ 2>/dev/null || true
+        cp next.config.js deploy-package/ 2>/dev/null || true
+        
         # Create startup script for Azure
-        cat > startup.sh << 'FRONTEND_EOF'
+        cat > deploy-package/startup.sh << 'FRONTEND_EOF'
         #!/bin/bash
         echo "Starting Next.js application..."
         cd /home/site/wwwroot
         
-        # Install dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing dependencies..."
-            npm install --production
-        fi
+        # Install production dependencies only
+        echo "Installing production dependencies..."
+        npm ci --only=production
         
         # Start the application
-        echo "Starting application on port 8080..."
-        PORT=8080 npm start
+        echo "Starting application on port \${PORT:-8080}..."
+        PORT=\${PORT:-8080} npm start
         FRONTEND_EOF
         
-        chmod +x startup.sh
+        chmod +x deploy-package/startup.sh
+        
+        # Create a package.json for production if needed
+        cd deploy-package
         
         # Create deployment package
-        zip -r deploy.zip . \
+        zip -r ../deploy.zip . \
           -x "*.git*" \
-          -x "*node_modules*" \
           -x "*.env*" \
           -x ".next/cache/*" \
           -x "*test*" \
@@ -231,8 +243,16 @@ jobs:
               "value": "false"
             },
             {
+              "name": "ENABLE_ORYX_BUILD",
+              "value": "false"
+            },
+            {
               "name": "WEBSITE_RUN_FROM_PACKAGE",
               "value": "0"
+            },
+            {
+              "name": "POST_BUILD_COMMAND",
+              "value": ""
             }
           ]
 
@@ -259,7 +279,15 @@ jobs:
               "value": "false"
             },
             {
+              "name": "ENABLE_ORYX_BUILD",
+              "value": "false"
+            },
+            {
               "name": "WEBSITE_RUN_FROM_PACKAGE",
               "value": "0"
+            },
+            {
+              "name": "POST_BUILD_COMMAND",
+              "value": ""
             }
           ]
