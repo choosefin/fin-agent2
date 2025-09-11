@@ -38,6 +38,7 @@ graph TB
     end
     
     subgraph "External Services"
+        Plaid[Plaid API]
         Polygon[Polygon.io]
         Yahoo[Yahoo Finance]
         Alpaca[Alpaca Markets]
@@ -45,6 +46,7 @@ graph TB
         Anthropic[Anthropic]
     end
     
+    Tools --> Plaid
     MarketData --> Polygon
     MarketData --> Yahoo
     MarketData --> Alpaca
@@ -189,6 +191,62 @@ debateWorkflow.step('agent-debate', async ({ context }) => {
 
 ### Mastra Tools Integration
 
+**Plaid Integration Tool:**
+```typescript
+const plaidTool = new Tool({
+  id: 'plaid-integration',
+  description: 'Connect and sync bank/brokerage accounts via Plaid',
+  inputSchema: z.object({
+    action: z.enum(['link', 'sync', 'getAccounts', 'getTransactions', 'getHoldings', 'refresh']),
+    publicToken: z.string().optional(),
+    accessToken: z.string().optional(),
+    accountId: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional()
+  }),
+  execute: async ({ action, publicToken, accessToken, accountId, startDate, endDate }) => {
+    const plaidClient = new PlaidApi({
+      clientId: process.env.PLAID_CLIENT_ID,
+      secret: process.env.PLAID_SECRET,
+      env: process.env.PLAID_ENV
+    });
+    
+    switch (action) {
+      case 'link':
+        // Exchange public token for access token
+        const { access_token } = await plaidClient.itemPublicTokenExchange({ public_token: publicToken });
+        // Store encrypted access token in database
+        await storeEncryptedToken(access_token);
+        return { accessToken: access_token };
+        
+      case 'sync':
+        // Sync all account data
+        const accounts = await plaidClient.accountsGet({ access_token: accessToken });
+        const transactions = await plaidClient.transactionsSync({ access_token: accessToken });
+        const holdings = await plaidClient.investmentsHoldingsGet({ access_token: accessToken });
+        return { accounts, transactions, holdings };
+        
+      case 'getAccounts':
+        return await plaidClient.accountsBalanceGet({ access_token: accessToken });
+        
+      case 'getTransactions':
+        return await plaidClient.transactionsGet({
+          access_token: accessToken,
+          start_date: startDate,
+          end_date: endDate
+        });
+        
+      case 'getHoldings':
+        return await plaidClient.investmentsHoldingsGet({ access_token: accessToken });
+        
+      case 'refresh':
+        // Refresh account data
+        return await plaidClient.accountsBalanceGet({ access_token: accessToken });
+    }
+  }
+});
+```
+
 **Market Data Tool:**
 ```typescript
 const marketDataTool = new Tool({
@@ -228,6 +286,87 @@ const pythonAnalyticsTool = new Tool({
 ```
 
 ### Next.js Frontend Components
+
+**Plaid Link Component:**
+```typescript
+import { usePlaidLink } from 'react-plaid-link';
+
+const PlaidConnect: React.FC = () => {
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Create link token
+    fetch('/api/plaid/create-link-token', {
+      method: 'POST',
+    })
+      .then(res => res.json())
+      .then(data => setLinkToken(data.link_token));
+  }, []);
+  
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: async (publicToken, metadata) => {
+      // Exchange public token for access token
+      const response = await fetch('/api/plaid/exchange-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          publicToken,
+          institution: metadata.institution,
+          accounts: metadata.accounts 
+        })
+      });
+      
+      if (response.ok) {
+        // Trigger account sync
+        await syncPlaidAccounts();
+      }
+    },
+    onExit: (error, metadata) => {
+      if (error) console.error('Plaid Link error:', error);
+    }
+  });
+  
+  return (
+    <Button 
+      onClick={() => open()} 
+      disabled={!ready}
+      className="bg-gradient-to-r from-blue-500 to-purple-600"
+    >
+      <BankIcon className="mr-2" />
+      Connect Bank Account
+    </Button>
+  );
+};
+
+const AccountsOverview: React.FC = () => {
+  const [accounts, setAccounts] = useState<PlaidAccount[]>([]);
+  const [holdings, setHoldings] = useState<PlaidHolding[]>([]);
+  
+  useEffect(() => {
+    loadPlaidData();
+  }, []);
+  
+  const loadPlaidData = async () => {
+    const accountsData = await fetch('/api/plaid/accounts').then(r => r.json());
+    const holdingsData = await fetch('/api/plaid/holdings').then(r => r.json());
+    setAccounts(accountsData);
+    setHoldings(holdingsData);
+  };
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {accounts.map(account => (
+        <AccountCard 
+          key={account.account_id}
+          account={account}
+          onRefresh={loadPlaidData}
+        />
+      ))}
+    </div>
+  );
+};
+```
 
 **Assistant Selector:**
 ```typescript
@@ -308,7 +447,63 @@ CREATE TABLE accounts (
   broker_name TEXT NOT NULL,
   account_number TEXT NOT NULL,
   account_type TEXT NOT NULL,
-  is_active BOOLEAN DEFAULT true
+  is_active BOOLEAN DEFAULT true,
+  plaid_account_id TEXT UNIQUE,
+  plaid_item_id TEXT,
+  last_synced_at TIMESTAMPTZ
+);
+
+-- Plaid Integration Tables
+CREATE TABLE plaid_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  plaid_item_id TEXT UNIQUE NOT NULL,
+  access_token_encrypted TEXT NOT NULL,
+  institution_id TEXT NOT NULL,
+  institution_name TEXT NOT NULL,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE plaid_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plaid_item_id TEXT REFERENCES plaid_items(plaid_item_id),
+  plaid_account_id TEXT UNIQUE NOT NULL,
+  account_name TEXT NOT NULL,
+  account_type TEXT NOT NULL,
+  account_subtype TEXT,
+  balance_available DECIMAL,
+  balance_current DECIMAL,
+  balance_limit DECIMAL,
+  iso_currency_code TEXT,
+  last_synced_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE plaid_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plaid_account_id TEXT REFERENCES plaid_accounts(plaid_account_id),
+  plaid_transaction_id TEXT UNIQUE NOT NULL,
+  amount DECIMAL NOT NULL,
+  date DATE NOT NULL,
+  name TEXT NOT NULL,
+  merchant_name TEXT,
+  category JSONB,
+  pending BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE plaid_holdings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plaid_account_id TEXT REFERENCES plaid_accounts(plaid_account_id),
+  plaid_holding_id TEXT UNIQUE NOT NULL,
+  security_id TEXT NOT NULL,
+  symbol TEXT,
+  quantity DECIMAL NOT NULL,
+  cost_basis DECIMAL,
+  value DECIMAL NOT NULL,
+  iso_currency_code TEXT,
+  last_synced_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE positions (
@@ -416,6 +611,58 @@ export const PortfolioSchema = z.object({
   description: z.string().optional(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime()
+});
+
+export const PlaidItemSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  plaid_item_id: z.string(),
+  access_token_encrypted: z.string(),
+  institution_id: z.string(),
+  institution_name: z.string(),
+  status: z.enum(['active', 'inactive', 'error']),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime()
+});
+
+export const PlaidAccountSchema = z.object({
+  id: z.string().uuid(),
+  plaid_item_id: z.string(),
+  plaid_account_id: z.string(),
+  account_name: z.string(),
+  account_type: z.enum(['depository', 'investment', 'loan', 'credit']),
+  account_subtype: z.string().optional(),
+  balance_available: z.number().nullable(),
+  balance_current: z.number().nullable(),
+  balance_limit: z.number().nullable(),
+  iso_currency_code: z.string().optional(),
+  last_synced_at: z.string().datetime()
+});
+
+export const PlaidTransactionSchema = z.object({
+  id: z.string().uuid(),
+  plaid_account_id: z.string(),
+  plaid_transaction_id: z.string(),
+  amount: z.number(),
+  date: z.string(),
+  name: z.string(),
+  merchant_name: z.string().optional(),
+  category: z.array(z.string()).optional(),
+  pending: z.boolean(),
+  created_at: z.string().datetime()
+});
+
+export const PlaidHoldingSchema = z.object({
+  id: z.string().uuid(),
+  plaid_account_id: z.string(),
+  plaid_holding_id: z.string(),
+  security_id: z.string(),
+  symbol: z.string().optional(),
+  quantity: z.number(),
+  cost_basis: z.number().optional(),
+  value: z.number(),
+  iso_currency_code: z.string().optional(),
+  last_synced_at: z.string().datetime()
 });
 
 export const PositionSchema = z.object({

@@ -140,6 +140,17 @@ The Fin Agent platform is a hybrid financial AI system that combines Next.js fro
 
 ### Requirement 13
 
+**User Story:** As a platform user, I want to securely connect my bank accounts and brokerage accounts through Plaid, so that I can get real-time portfolio insights and automated financial management across all my accounts.
+
+#### Acceptance Criteria
+
+1. WHEN users onboard THEN the system SHALL integrate with Plaid Link to securely authenticate and connect bank accounts, credit cards, and investment accounts
+2. WHEN accounts are connected THEN Plaid SHALL sync account balances, transactions, holdings, and investment positions in real-time
+3. WHEN financial data is retrieved THEN the system SHALL store encrypted Plaid access tokens and implement token rotation for security
+4. IF Plaid connection fails THEN the system SHALL provide clear error messages and fallback options for manual account entry
+
+### Requirement 14
+
 **User Story:** As an integration partner, I want standardized APIs that expose agent capabilities and memory interfaces, so that I can build applications on top of the financial AI platform.
 
 #### Acceptance Criteria
@@ -148,3 +159,14 @@ The Fin Agent platform is a hybrid financial AI system that combines Next.js fro
 2. WHEN integrating with memory THEN Mastra SHALL expose memory APIs for storing and retrieving financial context and user preferences through mem0
 3. WHEN connecting to agent workflows THEN external systems SHALL access Mastra's workflow APIs with proper authentication and observability
 4. IF Python services are needed THEN Mastra Tools SHALL provide unified interfaces to Motia-orchestrated services with comprehensive API documentation
+
+### Requirement 15
+
+**User Story:** As a financial advisor, I want AI agents to analyze aggregated financial data from all connected Plaid accounts, so that I can provide holistic financial advice based on complete financial pictures.
+
+#### Acceptance Criteria
+
+1. WHEN agents analyze portfolios THEN they SHALL aggregate data from all Plaid-connected accounts including checking, savings, credit, and investment accounts
+2. WHEN calculating net worth THEN the system SHALL combine Plaid account balances with manually tracked assets for comprehensive wealth analysis
+3. WHEN providing recommendations THEN agents SHALL consider cash flow patterns, spending habits, and investment allocations across all connected accounts
+4. IF accounts span multiple institutions THEN the system SHALL normalize and reconcile data for unified reporting and analysis

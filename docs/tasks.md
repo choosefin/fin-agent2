@@ -11,11 +11,12 @@
 - [ ] 2. Configure Supabase database and implement core data models
   - Set up Supabase project with authentication and database configuration
   - Create database migration files for portfolios, accounts, positions, and market data tables
-  - Implement Zod schemas for Portfolio, Account, Position, and financial data models
-  - Configure row-level security policies for user data isolation
+  - Create Plaid integration tables for items, accounts, transactions, and holdings
+  - Implement Zod schemas for Portfolio, Account, Position, Plaid entities, and financial data models
+  - Configure row-level security policies for user data isolation and Plaid data protection
   - Create TypeScript interfaces for TradingView integration and chart data
   - Write comprehensive unit tests for all schema validations and database operations
-  - _Requirements: 4.3, 1.1, 11.1, 12.1_
+  - _Requirements: 4.3, 1.1, 11.1, 12.1, 13.3_
 
 - [ ] 3. Implement Mastra agents and assistant profile system
   - Create 6 specialized Mastra agents (General, Analyst, Trading, Investment Advisor, Risk Manager, Macro Economist)
@@ -70,8 +71,10 @@
   - Implement chat interface with real-time agent communication
   - Create responsive design components for desktop and mobile interfaces
   - Add authentication integration with Supabase Auth
-  - Write component tests for assistant selection and chat functionality
-  - _Requirements: 9.1, 9.4, 4.2, 12.1_
+  - Implement Plaid Link component for bank account connection
+  - Create accounts overview dashboard showing all connected Plaid accounts
+  - Write component tests for assistant selection, chat functionality, and Plaid integration
+  - _Requirements: 9.1, 9.4, 4.2, 12.1, 13.1_
 
 - [ ] 9. Integrate TradingView charts with Polygon.io data feed
   - Set up TradingView Advanced Charts library in Next.js frontend
@@ -171,8 +174,10 @@
   - Create LLM-generated narrative reports explaining portfolio performance and market conditions
   - Add historical analysis and trend identification with Python analytics services
   - Integrate trading history and P&L tracking with Alpaca account data
+  - Aggregate financial data from all Plaid-connected accounts for holistic analysis
+  - Implement net worth calculation combining Plaid accounts and manual assets
   - Write unit tests for all financial calculations and portfolio management operations
-  - _Requirements: 1.1, 1.2, 1.3, 6.1, 6.2, 6.4_
+  - _Requirements: 1.1, 1.2, 1.3, 6.1, 6.2, 6.4, 15.1, 15.2_
 
 - [ ] 20. Optimize and fine-tune system performance
   - Profile and optimize Mastra workflow execution times and resource usage
@@ -183,11 +188,34 @@
   - Conduct performance testing and optimization for high-concurrency scenarios
   - _Requirements: 5.3, 7.2, 10.3, 11.4_
 
-- [ ] 21. Final integration and production deployment
-  - Integrate all components: Next.js frontend, Mastra backend, Motia Python services, and Azure infrastructure
-  - Test complete user workflows: assistant selection, multi-agent debate, parallel search, chart analysis, and asset comparison
+- [ ] 21. Implement Plaid integration for bank and brokerage account connectivity
+  - Set up Plaid API credentials and configure development/production environments
+  - Implement Plaid Link token creation and exchange endpoints
+  - Create secure storage for encrypted Plaid access tokens with rotation support
+  - Build Plaid sync service for real-time account, transaction, and holdings updates
+  - Implement webhook handlers for transaction updates and account changes
+  - Create data normalization layer to reconcile Plaid data with existing portfolio structure
+  - Add error handling for Plaid connection failures with user-friendly messaging
+  - Write integration tests using Plaid sandbox environment
+  - _Requirements: 13.1, 13.2, 13.3, 13.4, 15.3, 15.4_
+
+- [ ] 22. Create Plaid-powered financial analysis features
+  - Build cash flow analysis using Plaid transaction categorization
+  - Implement spending pattern detection and budget recommendations
+  - Create investment portfolio aggregation across multiple Plaid-connected brokerages
+  - Develop net worth tracking with automatic updates from Plaid accounts
+  - Add bill detection and recurring payment analysis
+  - Implement financial health scoring based on aggregated account data
+  - Create alerts for unusual transactions or account changes
+  - Write unit tests for all Plaid data analysis functions
+  - _Requirements: 15.1, 15.2, 15.3, 15.4_
+
+- [ ] 23. Final integration and production deployment
+  - Integrate all components: Next.js frontend, Mastra backend, Motia Python services, Plaid integration, and Azure infrastructure
+  - Test complete user workflows: account connection, assistant selection, multi-agent debate, parallel search, chart analysis, and asset comparison
+  - Validate Plaid production access and security configurations
   - Validate production deployment on Azure with proper scaling, monitoring, and security configurations
   - Conduct user acceptance testing with real financial scenarios and agent interactions
   - Perform final security audit and compliance verification for financial data handling
   - Deploy to production environment with comprehensive monitoring and alerting
-  - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1, 9.1, 10.1, 11.1, 12.1_
+  - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1, 9.1, 10.1, 11.1, 12.1, 13.1, 14.1, 15.1_
