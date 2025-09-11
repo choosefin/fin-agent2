@@ -244,16 +244,22 @@ docker-compose up
 ```
 
 ### Azure Deployment
+The application automatically deploys to Azure App Service via GitHub Actions when pushing to the main branch.
+
 ```bash
-# Deploy to Azure Container Instances
+# Manual deployment (if needed)
 ./scripts/azure-deploy.sh
 
-# Or use ARM template directly
-az deployment group create \
-  --resource-group finagent-rg \
-  --template-file azure-deploy.json \
-  --parameters azure-deploy.parameters.json
+# Or deploy specific apps
+cd apps/backend && ./deploy.sh  # Deploy backend
+cd apps/web && ./deploy.sh      # Deploy frontend
 ```
+
+Deployment features:
+- Linux-based App Service containers
+- Automatic builds via GitHub Actions
+- Environment variable management via Azure Key Vault
+- Health checks and auto-restart
 
 ### Backend Deployment
 - **Azure Container Instances**: Production deployment via GitHub Actions

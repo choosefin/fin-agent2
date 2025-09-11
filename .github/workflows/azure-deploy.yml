@@ -77,22 +77,19 @@ jobs:
             npm ci --only=production
         fi
         
-        # Install Motia CLI globally if not present
-        if ! command -v motia &> /dev/null; then
-            echo "Installing Motia CLI..."
-            npm install -g motia@0.6.4-beta.130
-        fi
-        
-        # Build the Motia project
+        # Use npx to run Motia commands (avoids global installation)
         echo "Building Motia backend..."
-        motia build || echo "Build completed or not required"
+        npx motia build || echo "Build completed or not required"
         
-        # Start the application
+        # Start the application using npx
         echo "Starting Motia on port \${PORT:-3001}..."
-        motia start --port \${PORT:-3001} --host 0.0.0.0
+        PORT=\${PORT:-3001} npx motia dev --host 0.0.0.0
         BACKEND_EOF
         
         chmod +x startup.sh
+        
+        # Remove Windows-specific files
+        rm -f deploy.cmd .deployment
         
         # Create deployment package
         zip -r deploy.zip . \
@@ -101,9 +98,7 @@ jobs:
           -x "*.env*" \
           -x "*test*" \
           -x "*.md" \
-          -x ".DS_Store" \
-          -x ".deployment" \
-          -x "deploy.cmd"
+          -x ".DS_Store"
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
@@ -184,58 +179,32 @@ jobs:
         # Copy built files if they exist (for faster deployment)
         cp -r .next deploy-package/ 2>/dev/null || true
         
-        # Create server.js for Azure App Service
-        cat > deploy-package/server.js << 'SERVER_EOF'
-        const { createServer } = require('http');
-        const { parse } = require('url');
-        const next = require('next');
+        # Copy Linux deployment scripts
+        cp startup.sh deploy-package/ 2>/dev/null || true
+        cp deploy.sh deploy-package/ 2>/dev/null || true
         
-        const dev = process.env.NODE_ENV !== 'production';
-        const hostname = '0.0.0.0';
-        const port = process.env.PORT || 8080;
+        # Create startup.sh if it doesn't exist
+        if [ ! -f deploy-package/startup.sh ]; then
+          cat > deploy-package/startup.sh << 'STARTUP_EOF'
+        #!/bin/bash
+        set -e
+        echo "=== Starting Next.js application ==="
+        cd /home/site/wwwroot
         
-        const app = next({ dev, hostname, port });
-        const handle = app.getRequestHandler();
+        # Ensure build exists
+        if [ ! -d ".next" ]; then
+            echo "Building Next.js application..."
+            npm run build
+        fi
         
-        app.prepare().then(() => {
-          createServer(async (req, res) => {
-            try {
-              const parsedUrl = parse(req.url, true);
-              await handle(req, res, parsedUrl);
-            } catch (err) {
-              console.error('Error occurred handling', req.url, err);
-              res.statusCode = 500;
-              res.end('internal server error');
-            }
-          }).listen(port, (err) => {
-            if (err) throw err;
-            console.log(\`> Ready on http://\${hostname}:\${port}\`);
-          });
-        });
-        SERVER_EOF
+        # Start the application
+        PORT=\${PORT:-8080} npm start
+        STARTUP_EOF
+          chmod +x deploy-package/startup.sh
+        fi
         
-        # Create web.config for IIS
-        cat > deploy-package/web.config << 'WEBCONFIG_EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <configuration>
-          <system.webServer>
-            <handlers>
-              <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
-            </handlers>
-            <rewrite>
-              <rules>
-                <rule name="DynamicContent">
-                  <conditions>
-                    <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
-                  </conditions>
-                  <action type="Rewrite" url="server.js"/>
-                </rule>
-              </rules>
-            </rewrite>
-            <iisnode node_env="production" />
-          </system.webServer>
-        </configuration>
-        WEBCONFIG_EOF
+        # Add .do-not-run-on-build flag to prevent Oryx auto-start
+        touch deploy-package/.do-not-run-on-build
         
         # Create a package.json for production if needed
         cd deploy-package
