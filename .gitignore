@@ -6,3 +6,15 @@ venv
 .mermaid
 dist
 *.pyc
+.env.local
+
+.turbo
+
+# Azure publish profiles
+*-publish-profile.xml
+backend-publish-profile.xml
+frontend-publish-profile.xml
+
+# Azure deployment files
+azure-deploy.parameters.json
+*.zip

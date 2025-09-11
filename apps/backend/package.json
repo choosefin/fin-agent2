@@ -1,25 +1,75 @@
 {
-  "name": ".",
-  "description": "",
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Fin Agent backend with Mastra AI framework",
   "scripts": {
     "postinstall": "motia install",
     "dev": "motia dev",
     "generate-types": "motia generate-types",
     "build": "motia build",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "clean": "rm -rf dist node_modules python_modules .motia .mermaid"
   },
   "keywords": [
-    "motia"
+    "motia",
+    "mastra",
+    "financial-ai"
   ],
   "dependencies": {
+    "@alpacahq/alpaca-trade-api": "^3.0.0",
+    "@azure/identity": "^4.0.0",
+    "@azure/keyvault-secrets": "^4.8.0",
+    "@mastra/core": "^0.16.2",
+    "@mastra/memory": "^0.15.0",
+    "@polygon.io/client-js": "^8.2.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.0",
+    "fastify": "^4.28.0",
+    "jsonwebtoken": "^9.0.2",
     "motia": "^0.6.4-beta.130",
+    "openai": "^5.20.1",
+    "plaid": "^29.0.0",
+    "redis": "^4.7.0",
+    "yahoo-finance2": "^2.12.0",
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
     "@types/react": "^18.3.18",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "jest": "^29.7.0",
+    "redis-memory-server": "^0.10.0",
+    "ts-jest": "^29.2.0",
     "ts-node": "^10.9.2",
     "turbo": "^2.5.6",
     "typescript": "^5.7.3"
   },
-  "packageManager": "pnpm@9.0.0+sha512.b4106707c7225b1748b61595953ccbebff97b54ad05d002aa3635f633b9c53cd666f7ce9b8bc44704f1fa048b9a49b55371ab2d9e9d667d1efe2ef1514bcd513"
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/tests",
+      "<rootDir>/services"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ],
+    "collectCoverageFrom": [
+      "services/**/*.ts",
+      "!services/**/*.d.ts"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
+  }
 }

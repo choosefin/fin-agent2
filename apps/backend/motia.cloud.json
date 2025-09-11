@@ -1,0 +1,62 @@
+{
+  "server": {
+    "port": 3001,
+    "host": "0.0.0.0",
+    "keepAliveTimeout": 120000,
+    "headersTimeout": 121000,
+    "requestTimeout": 120000,
+    "timeout": 0,
+    "cors": {
+      "enabled": true,
+      "origin": "*",
+      "credentials": true
+    },
+    "logging": {
+      "level": "debug",
+      "format": "json",
+      "destination": "stdout"
+    },
+    "gracefulShutdown": {
+      "enabled": true,
+      "timeout": 30000
+    }
+  },
+  "runtime": {
+    "nodeOptions": {
+      "maxOldSpaceSize": 512,
+      "maxHttpHeaderSize": 16384
+    },
+    "clustering": {
+      "enabled": false
+    },
+    "healthcheck": {
+      "enabled": true,
+      "path": "/health",
+      "interval": 30000
+    }
+  },
+  "redis": {
+    "retryStrategy": {
+      "retries": 10,
+      "factor": 2,
+      "minTimeout": 1000,
+      "maxTimeout": 60000
+    },
+    "reconnectOnError": true,
+    "enableOfflineQueue": true
+  },
+  "azure": {
+    "containerInstance": {
+      "optimizations": true,
+      "lowMemoryMode": true,
+      "disableWatcher": true
+    }
+  },
+  "production": {
+    "errorHandling": "graceful",
+    "exitOnUncaughtException": false,
+    "exitOnUnhandledRejection": false,
+    "restartOnCrash": true,
+    "maxRestarts": 3
+  }
+}
