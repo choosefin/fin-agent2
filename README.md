@@ -271,4 +271,4 @@ The Next.js frontend communicates with the Motia backend through:
 
 ## License
 
-MIT
+Source Available - See [LICENSE.md](LICENSE.md) for details
