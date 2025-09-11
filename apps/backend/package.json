@@ -19,10 +19,16 @@
     "financial-ai"
   ],
   "dependencies": {
+    "@azure/identity": "^4.0.0",
+    "@azure/keyvault-secrets": "^4.8.0",
+    "@mastra/core": "^0.1.0",
+    "@mastra/memory": "^0.1.0",
+    "@mastra/tools": "^0.1.0",
     "@supabase/supabase-js": "^2.45.0",
     "alpaca-trade-api": "^3.0.0",
     "dotenv": "^16.4.0",
     "fastify": "^4.28.0",
+    "jsonwebtoken": "^9.0.2",
     "motia": "^0.6.4-beta.130",
     "plaid": "^29.0.0",
     "redis": "^4.7.0",
