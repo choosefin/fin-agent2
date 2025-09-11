@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { PolygonDatafeedAdapter } from '@/lib/tradingview/polygon-datafeed';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { ServerDatafeedAdapter } from '@/lib/tradingview/server-datafeed';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
+import ChartErrorFallback from '@/components/error/ChartErrorFallback';
+import { trackChartError, trackChartLoad } from '@/lib/monitoring/error-tracking';
 
 declare global {
   interface Window {
     TradingView: any;
-    PolygonDatafeedAdapter: typeof PolygonDatafeedAdapter;
+    ServerDatafeedAdapter: typeof ServerDatafeedAdapter;
   }
 }
 
@@ -35,10 +38,12 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const widgetRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [loadStartTime] = useState(Date.now());
 
   useEffect(() => {
-    // Make PolygonDatafeedAdapter available globally
-    window.PolygonDatafeedAdapter = PolygonDatafeedAdapter;
+    // Make ServerDatafeedAdapter available globally
+    window.ServerDatafeedAdapter = ServerDatafeedAdapter;
 
     const loadChart = async () => {
       if (!chartContainerRef.current) return;
@@ -56,55 +61,10 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
           return;
         }
 
-        // Create datafeed instance
-        const datafeed = new PolygonDatafeedAdapter(
-          process.env.NEXT_PUBLIC_POLYGON_API_KEY || ''
-        );
-
-        // Initialize TradingView widget
+        // Initialize TradingView widget with memoized configuration
         widgetRef.current = new window.TradingView.widget({
+          ...widgetConfig,
           container: chartContainerRef.current,
-          library_path: '/charting_library/',
-          locale: 'en',
-          disabled_features: ['use_localstorage_for_settings'],
-          enabled_features: ['study_templates'],
-          charts_storage_url: 'https://saveload.tradingview.com',
-          charts_storage_api_version: '1.1',
-          client_id: 'finagent-platform',
-          user_id: 'public_user',
-          fullscreen: false,
-          autosize: true,
-          symbol: symbol,
-          interval: interval,
-          datafeed: datafeed,
-          theme: theme,
-          style: '1',
-          toolbar_bg: theme === 'dark' ? '#1a1a1a' : '#f1f3f6',
-          loading_screen: { 
-            backgroundColor: theme === 'dark' ? '#1a1a1a' : '#ffffff',
-            foregroundColor: theme === 'dark' ? '#ffffff' : '#000000',
-          },
-          overrides: theme === 'dark' ? {
-            'paneProperties.background': '#1a1a1a',
-            'paneProperties.vertGridProperties.color': '#2a2a2a',
-            'paneProperties.horzGridProperties.color': '#2a2a2a',
-            'symbolWatermarkProperties.transparency': 90,
-            'scalesProperties.textColor': '#AAA',
-            'mainSeriesProperties.candleStyle.wickUpColor': '#26a69a',
-            'mainSeriesProperties.candleStyle.wickDownColor': '#ef5350',
-          } : {},
-          studies_overrides: {},
-          time_frames: [
-            { text: '1D', resolution: '1', description: '1 Day' },
-            { text: '5D', resolution: '5', description: '5 Days' },
-            { text: '1M', resolution: '60', description: '1 Month' },
-            { text: '3M', resolution: '1D', description: '3 Months' },
-            { text: '6M', resolution: '1D', description: '6 Months' },
-            { text: '1Y', resolution: '1W', description: '1 Year' },
-            { text: '5Y', resolution: '1M', description: '5 Years' },
-          ],
-          hide_side_toolbar: !showToolbar,
-          allow_symbol_change: allowSymbolChange,
         });
 
         // Add initial studies if specified
@@ -118,10 +78,34 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         }
 
         setIsLoading(false);
+        
+        // Track successful chart load
+        const loadTime = Date.now() - loadStartTime;
+        trackChartLoad(symbol, loadTime);
       } catch (err) {
         console.error('Failed to initialize TradingView chart:', err);
-        setError('Failed to load chart. Please try again.');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load chart. Please try again.';
+        setError(errorMessage);
         setIsLoading(false);
+        
+        // Track chart error
+        if (err instanceof Error) {
+          trackChartError(err, symbol, 'chart_initialization');
+        }
+        
+        // Optional: Auto-retry logic for transient errors
+        if (retryCount < 2 && err instanceof Error) {
+          const isTransientError = err.message.includes('Network') || 
+                                   err.message.includes('timeout') || 
+                                   err.message.includes('fetch');
+          
+          if (isTransientError) {
+            setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+              setError(null);
+            }, 2000 * (retryCount + 1)); // Exponential backoff
+          }
+        }
       }
     };
 
@@ -137,10 +121,65 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         }
       }
     };
-  }, [symbol, theme, interval, showToolbar, allowSymbolChange, studies]);
+  }, [widgetConfig, studies, retryCount]);
 
-  // Placeholder UI when TradingView library is not available
-  const renderPlaceholder = () => (
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setRetryCount(prev => prev + 1);
+  }, []);
+
+  // Memoize the datafeed adapter to avoid recreating it
+  const datafeedAdapter = useMemo(() => {
+    return new ServerDatafeedAdapter();
+  }, []);
+
+  // Memoize widget configuration to prevent unnecessary re-renders
+  const widgetConfig = useMemo(() => ({
+    library_path: '/charting_library/',
+    locale: 'en',
+    disabled_features: ['use_localstorage_for_settings'],
+    enabled_features: ['study_templates'],
+    charts_storage_url: 'https://saveload.tradingview.com',
+    charts_storage_api_version: '1.1',
+    client_id: 'finagent-platform',
+    user_id: 'public_user',
+    fullscreen: false,
+    autosize: true,
+    symbol: symbol,
+    interval: interval,
+    datafeed: datafeedAdapter,
+    theme: theme,
+    style: '1',
+    toolbar_bg: theme === 'dark' ? '#1a1a1a' : '#f1f3f6',
+    loading_screen: { 
+      backgroundColor: theme === 'dark' ? '#1a1a1a' : '#ffffff',
+      foregroundColor: theme === 'dark' ? '#ffffff' : '#000000',
+    },
+    overrides: theme === 'dark' ? {
+      'paneProperties.background': '#1a1a1a',
+      'paneProperties.vertGridProperties.color': '#2a2a2a',
+      'paneProperties.horzGridProperties.color': '#2a2a2a',
+      'symbolWatermarkProperties.transparency': 90,
+      'scalesProperties.textColor': '#AAA',
+      'mainSeriesProperties.candleStyle.wickUpColor': '#26a69a',
+      'mainSeriesProperties.candleStyle.wickDownColor': '#ef5350',
+    } : {},
+    studies_overrides: {},
+    time_frames: [
+      { text: '1D', resolution: '1', description: '1 Day' },
+      { text: '5D', resolution: '5', description: '5 Days' },
+      { text: '1M', resolution: '60', description: '1 Month' },
+      { text: '3M', resolution: '1D', description: '3 Months' },
+      { text: '6M', resolution: '1D', description: '6 Months' },
+      { text: '1Y', resolution: '1W', description: '1 Year' },
+      { text: '5Y', resolution: '1M', description: '5 Years' },
+    ],
+    hide_side_toolbar: !showToolbar,
+    allow_symbol_change: allowSymbolChange,
+  }), [symbol, interval, datafeedAdapter, theme, showToolbar, allowSymbolChange]);
+
+  // Memoize placeholder UI to prevent unnecessary re-renders
+  const renderPlaceholder = useMemo(() => (
     <div className={`flex flex-col items-center justify-center h-full rounded-lg border ${
       theme === 'dark' 
         ? 'bg-gray-900 border-gray-700 text-white' 
@@ -172,42 +211,47 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         </span>
       </div>
     </div>
-  );
+  ), [symbol, interval, theme]);
 
   return (
-    <div className="relative w-full" style={{ height: `${height}px` }}>
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-10">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading chart...</p>
+    <ErrorBoundary 
+      fallback={<ChartErrorFallback symbol={symbol} />}
+      onError={(error, errorInfo) => {
+        console.error('TradingViewChart Error Boundary:', error, errorInfo);
+        trackChartError(error, symbol, 'error_boundary');
+      }}
+    >
+      <div className="relative w-full" style={{ height: `${height}px` }}>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-10">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" role="status" aria-label="Loading chart"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading chart...</p>
+            </div>
           </div>
-        </div>
-      )}
-      
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-10">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Retry
-            </button>
+        )}
+        
+        {error && (
+          <div className="absolute inset-0 z-10">
+            <ChartErrorFallback 
+              error={new Error(error)} 
+              reset={handleRetry}
+              symbol={symbol}
+            />
           </div>
-        </div>
-      )}
+        )}
 
-      <div
-        ref={chartContainerRef}
-        id={containerId}
-        className="w-full h-full"
-      >
-        {!window.TradingView && renderPlaceholder()}
+        <div
+          ref={chartContainerRef}
+          id={containerId}
+          className="w-full h-full"
+        >
+          {!window.TradingView && renderPlaceholder()}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 
-export default TradingViewChart;
+// Wrap with React.memo for performance optimization
+export default React.memo(TradingViewChart);

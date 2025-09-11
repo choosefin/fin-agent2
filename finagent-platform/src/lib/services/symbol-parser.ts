@@ -16,10 +16,11 @@ export class SymbolParserService {
     'CRYPTO': 'CRYPTO',
     'FOREX': 'FOREX',
   };
-  private apiKey: string;
+  private baseUrl: string;
 
-  constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.POLYGON_API_KEY || '';
+  constructor(baseUrl?: string) {
+    // Use internal API endpoints instead of direct Polygon API calls
+    this.baseUrl = baseUrl || '/api/polygon';
   }
 
   /**
@@ -49,27 +50,14 @@ export class SymbolParserService {
   }
 
   /**
-   * Resolve symbol with exchange information using Polygon API
+   * Resolve symbol with exchange information using internal API
    */
   async resolveSymbolWithExchange(symbol: string): Promise<ParsedSymbol | null> {
-    if (!this.apiKey) {
-      // Return basic symbol without exchange info if no API key
-      return {
-        symbol,
-        fullSymbol: symbol,
-      };
-    }
-
     try {
-      const response = await axios.get(
-        `https://api.polygon.io/v3/reference/tickers/${symbol}`,
-        {
-          params: { apikey: this.apiKey },
-        }
-      );
+      const response = await axios.get(`${this.baseUrl}/ticker/${symbol}`);
 
-      if (response.data.results) {
-        const data = response.data.results;
+      if (response.data.success && response.data.data.results) {
+        const data = response.data.data.results;
         return {
           symbol: data.ticker,
           exchange: data.primary_exchange,
@@ -83,7 +71,11 @@ export class SymbolParserService {
       console.error(`Failed to resolve symbol ${symbol}:`, error);
     }
 
-    return null;
+    // Return basic symbol without exchange info if resolution fails
+    return {
+      symbol,
+      fullSymbol: symbol,
+    };
   }
 
   /**
@@ -110,28 +102,19 @@ export class SymbolParserService {
   }
 
   /**
-   * Search for symbols matching a query
+   * Search for symbols matching a query using internal API
    */
   async searchSymbols(query: string, limit: number = 10): Promise<ParsedSymbol[]> {
-    if (!this.apiKey) {
-      return [];
-    }
-
     try {
-      const response = await axios.get(
-        'https://api.polygon.io/v3/reference/tickers',
-        {
-          params: {
-            search: query,
-            apikey: this.apiKey,
-            limit,
-            active: true,
-          },
-        }
-      );
+      const response = await axios.get(`${this.baseUrl}/search`, {
+        params: {
+          query,
+          limit,
+        },
+      });
 
-      if (response.data.results) {
-        return response.data.results.map((item: any) => ({
+      if (response.data.success && response.data.data.results) {
+        return response.data.data.results.map((item: any) => ({
           symbol: item.ticker,
           exchange: item.primary_exchange,
           fullSymbol: item.primary_exchange 

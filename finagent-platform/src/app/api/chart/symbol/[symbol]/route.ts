@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { ChartAgent } from '@/lib/agents/chart-agent';
+
+const symbolParamsSchema = z.object({
+  symbol: z.string().min(1).max(10).regex(/^[A-Z0-9.-]+$/, 'Invalid symbol format'),
+});
+
+const queryParamsSchema = z.object({
+  interval: z.string().regex(/^(1|5|15|30|60|240|1D|1W|1M)$/).default('1D'),
+  theme: z.enum(['light', 'dark']).default('light'),
+  fullscreen: z.boolean().default(false),
+});
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { symbol: string } }
 ) {
   try {
-    const { symbol } = params;
-    const searchParams = request.nextUrl.searchParams;
+    // Validate symbol parameter
+    const { symbol } = symbolParamsSchema.parse(params);
     
-    const interval = searchParams.get('interval') || '1D';
-    const theme = (searchParams.get('theme') as 'light' | 'dark') || 'light';
-    const fullscreen = searchParams.get('fullscreen') === 'true';
+    // Validate query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const { interval, theme, fullscreen } = queryParamsSchema.parse({
+      interval: searchParams.get('interval'),
+      theme: searchParams.get('theme'),
+      fullscreen: searchParams.get('fullscreen') === 'true',
+    });
 
     const chartAgent = new ChartAgent();
     const result = await chartAgent.generateChart(symbol, {
@@ -36,6 +51,18 @@ export async function GET(
     });
   } catch (error) {
     console.error('Chart API error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid parameters',
+          details: error.errors
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
