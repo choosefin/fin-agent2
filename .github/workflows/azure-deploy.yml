@@ -1,0 +1,230 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME_BACKEND: finagent-backend-pps457j4wjrc6
+  AZURE_WEBAPP_NAME_FRONTEND: finagent-web-pps457j4wjrc6
+  NODE_VERSION: '20.x'
+
+jobs:
+  build-and-deploy-backend:
+    name: Build and Deploy Backend
+    runs-on: ubuntu-latest
+    environment:
+      name: 'production'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        run_install: false
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - name: Setup pnpm cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: |
+        cd apps/backend
+        pnpm install --frozen-lockfile
+
+    - name: Build backend
+      run: |
+        cd apps/backend
+        pnpm run build || echo "Build script not found, skipping build"
+
+    - name: Create deployment package
+      run: |
+        cd apps/backend
+        zip -r deploy.zip . \
+          -x "*.git*" \
+          -x "*node_modules*" \
+          -x "*.env*" \
+          -x "*test*" \
+          -x "*.md" \
+          -x ".DS_Store"
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME_BACKEND }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
+        package: apps/backend/deploy.zip
+
+  build-and-deploy-frontend:
+    name: Build and Deploy Frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: 'production'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        run_install: false
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - name: Setup pnpm cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: |
+        cd apps/web
+        pnpm install --frozen-lockfile
+
+    - name: Build frontend
+      run: |
+        cd apps/web
+        pnpm run build
+      env:
+        NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+    - name: Create deployment package
+      run: |
+        cd apps/web
+        # Create startup script for Azure
+        cat > startup.sh << 'EOF'
+        #!/bin/bash
+        echo "Starting Next.js application..."
+        cd /home/site/wwwroot
+        
+        # Install dependencies if needed
+        if [ ! -d "node_modules" ]; then
+            echo "Installing dependencies..."
+            npm install --production
+        fi
+        
+        # Start the application
+        echo "Starting application on port 8080..."
+        PORT=8080 npm start
+        EOF
+        
+        chmod +x startup.sh
+        
+        # Create deployment package
+        zip -r deploy.zip . \
+          -x "*.git*" \
+          -x "*node_modules*" \
+          -x "*.env*" \
+          -x ".next/cache/*" \
+          -x "*test*" \
+          -x "*.md" \
+          -x ".DS_Store"
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME_FRONTEND }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
+        package: apps/web/deploy.zip
+
+  configure-app-settings:
+    name: Configure App Settings
+    needs: [build-and-deploy-backend, build-and-deploy-frontend]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set Backend App Settings
+      uses: azure/appservice-settings@v1
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME_BACKEND }}
+        app-settings-json: |
+          [
+            {
+              "name": "NODE_ENV",
+              "value": "production"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "~20"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "0"
+            }
+          ]
+
+    - name: Set Frontend App Settings
+      uses: azure/appservice-settings@v1
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME_FRONTEND }}
+        app-settings-json: |
+          [
+            {
+              "name": "NODE_ENV",
+              "value": "production"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "~20"
+            },
+            {
+              "name": "WEBSITE_STARTUP_FILE",
+              "value": "startup.sh"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "false"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "0"
+            }
+          ]
