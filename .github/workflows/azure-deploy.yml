@@ -1,0 +1,108 @@
+name: Deploy to Azure Container Instances
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AZURE_CONTAINER_REGISTRY: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+  RESOURCE_GROUP: fin-agent-rg
+  LOCATION: eastus
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Login to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+        username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+        password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+
+    - name: Build and push backend image
+      run: |
+        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/finagent-backend:${{ github.sha }} ./apps/backend
+        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/finagent-backend:${{ github.sha }}
+
+    - name: Build and push frontend image
+      run: |
+        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/finagent-web:${{ github.sha }} ./apps/web
+        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/finagent-web:${{ github.sha }}
+
+    - name: Deploy Backend to Azure Container Instances
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az container create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name finagent-backend \
+            --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/finagent-backend:${{ github.sha }} \
+            --cpu 2 \
+            --memory 4 \
+            --registry-login-server ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
+            --registry-username ${{ secrets.AZURE_REGISTRY_USERNAME }} \
+            --registry-password ${{ secrets.AZURE_REGISTRY_PASSWORD }} \
+            --ports 3000 \
+            --environment-variables \
+              NODE_ENV=production \
+              PORT=3000 \
+              SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+              SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+              SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }} \
+              PLAID_CLIENT_ID=${{ secrets.PLAID_CLIENT_ID }} \
+              PLAID_SECRET=${{ secrets.PLAID_SECRET }} \
+              PLAID_ENV=${{ secrets.PLAID_ENV }} \
+              POLYGON_API_KEY=${{ secrets.POLYGON_API_KEY }} \
+              ALPACA_API_KEY=${{ secrets.ALPACA_API_KEY }} \
+              ALPACA_SECRET_KEY=${{ secrets.ALPACA_SECRET_KEY }} \
+              OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+              ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+              GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
+              REDIS_URL=${{ secrets.REDIS_URL }} \
+              MEM0_API_KEY=${{ secrets.MEM0_API_KEY }} \
+              MEM0_ENDPOINT=${{ secrets.MEM0_ENDPOINT }} \
+            --location ${{ env.LOCATION }}
+
+    - name: Deploy Frontend to Azure Container Instances
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az container create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name finagent-web \
+            --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/finagent-web:${{ github.sha }} \
+            --cpu 1 \
+            --memory 2 \
+            --registry-login-server ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
+            --registry-username ${{ secrets.AZURE_REGISTRY_USERNAME }} \
+            --registry-password ${{ secrets.AZURE_REGISTRY_PASSWORD }} \
+            --ports 3000 \
+            --dns-name-label finagent \
+            --environment-variables \
+              NODE_ENV=production \
+              NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+              NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --location ${{ env.LOCATION }}
+
+    - name: Deploy Redis Cache
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az redis create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name finagent-cache \
+            --location ${{ env.LOCATION }} \
+            --sku Basic \
+            --vm-size c0
