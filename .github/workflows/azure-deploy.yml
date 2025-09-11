@@ -208,60 +208,71 @@ jobs:
     - name: Build frontend
       run: |
         cd apps/web
+        # Build Next.js in standalone mode
         pnpm build
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         SKIP_BUILD_PRODUCT_REDIRECTS: 1
+        NODE_ENV: production
 
     - name: Create deployment package
       run: |
         cd apps/web
         
-        # Create deployment package with all necessary files
+        # Create deployment package with pre-built app
         mkdir -p deploy-package
         
-        # Copy source files (needed for Azure build)
-        cp -r src deploy-package/
+        # Copy ONLY what's needed for production
+        cp -r .next deploy-package/
         cp -r public deploy-package/ 2>/dev/null || true
-        
-        # Copy configuration files
         cp package.json deploy-package/
-        cp pnpm-lock.yaml deploy-package/ 2>/dev/null || true
-        cp package-lock.json deploy-package/ 2>/dev/null || true
-        cp next.config.ts deploy-package/ 2>/dev/null || true
-        cp next.config.js deploy-package/ 2>/dev/null || true
-        cp tsconfig.json deploy-package/ 2>/dev/null || true
-        cp tailwind.config.ts deploy-package/ 2>/dev/null || true
-        cp postcss.config.mjs deploy-package/ 2>/dev/null || true
         
-        # Copy built files if they exist (for faster deployment)
-        cp -r .next deploy-package/ 2>/dev/null || true
+        # Create a minimal package.json for production
+        cat > deploy-package/package.json << 'PACKAGE_EOF'
+        {
+          "name": "web",
+          "version": "0.1.0",
+          "private": true,
+          "scripts": {
+            "start": "next start -p $PORT"
+          },
+          "dependencies": {
+            "next": "15.5.3",
+            "react": "19.1.0",
+            "react-dom": "19.1.0"
+          }
+        }
+        PACKAGE_EOF
         
         # Copy Linux deployment scripts
         cp startup.sh deploy-package/ 2>/dev/null || true
         cp deploy.sh deploy-package/ 2>/dev/null || true
         
-        # Create startup.sh if it doesn't exist
-        if [ ! -f deploy-package/startup.sh ]; then
-          cat > deploy-package/startup.sh << 'STARTUP_EOF'
+        # Create startup.sh for production
+        cat > deploy-package/startup.sh << 'STARTUP_EOF'
         #!/bin/bash
         set -e
-        echo "=== Starting Next.js application ==="
+        echo "=== Starting Next.js production server ==="
         cd /home/site/wwwroot
         
-        # Ensure build exists
-        if [ ! -d ".next" ]; then
-            echo "Building Next.js application..."
-            npm run build
+        # Install minimal production dependencies if needed
+        if [ ! -d "node_modules" ]; then
+            echo "Installing production dependencies..."
+            npm install --production --no-optional
         fi
         
-        # Start the application
-        PORT=\${PORT:-8080} npm start
-        STARTUP_EOF
-          chmod +x deploy-package/startup.sh
+        # Ensure .next directory exists
+        if [ ! -d ".next" ]; then
+            echo "ERROR: .next directory not found. The application was not built properly."
+            exit 1
         fi
+        
+        # Start the production server
+        PORT=${PORT:-8080} npm start
+        STARTUP_EOF
+        chmod +x deploy-package/startup.sh
         
         # Add .do-not-run-on-build flag to prevent Oryx auto-start
         touch deploy-package/.do-not-run-on-build

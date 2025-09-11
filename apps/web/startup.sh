@@ -3,15 +3,22 @@
 
 set -e
 
-echo "=== Starting Next.js application ==="
+echo "=== Starting Next.js production server ==="
 
 # Navigate to app directory
 cd /home/site/wwwroot
 
+# Install minimal production dependencies if missing
+if [ ! -f "node_modules/next/package.json" ]; then
+    echo "Installing production dependencies..."
+    npm install next@15.5.3 react@19.1.0 react-dom@19.1.0 --production --no-save
+fi
+
 # Ensure the build exists
 if [ ! -d ".next" ]; then
-    echo "Error: .next directory not found. Application not built properly."
-    echo "Please check the deployment logs."
+    echo "ERROR: .next directory not found."
+    echo "Contents of /home/site/wwwroot:"
+    ls -la
     exit 1
 fi
 
@@ -25,7 +32,6 @@ export PORT
 
 echo "Starting Next.js server on port $PORT..."
 echo "Node version: $(node --version)"
-echo "NPM version: $(npm --version)"
 
-# Start Next.js using the direct command
-exec node node_modules/.bin/next start -p $PORT
+# Start Next.js using npx to handle missing binaries
+exec npx next start -p $PORT
