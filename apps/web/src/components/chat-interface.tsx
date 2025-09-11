@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, User, Bot } from 'lucide-react';
+import { Send, Loader2, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { AssistantProfile } from './assistant-selector';
@@ -117,7 +117,7 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
             <AssistantIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Hi! I'm your {assistant.name}</p>
+            <p className="text-lg font-medium">Hi! I&apos;m your {assistant.name}</p>
             <p className="text-sm mt-2">{assistant.description}</p>
             <p className="text-sm mt-4">How can I help you today?</p>
           </div>

@@ -1,44 +1,29 @@
-# Backend Dockerfile
-FROM node:20-alpine AS base
-
-# Install Python for Motia Python services
-RUN apk add --no-cache python3 py3-pip
+# Backend Dockerfile for Motia Production
+FROM motiadev/motia:latest
 
 WORKDIR /app
 
-# Install dependencies
-FROM base AS deps
+# Install Dependencies
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Build application
-FROM base AS builder
-COPY package*.json ./
-RUN npm ci
+# Move application files
 COPY . .
-RUN npm run build
 
-# Production image
-FROM base AS runner
-ENV NODE_ENV=production
+# Copy debug scripts and configs
+COPY start-debug.sh /app/
+COPY monitor.sh /app/
+COPY motia.cloud.json /app/
+RUN chmod +x /app/start-debug.sh /app/monitor.sh
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Setup python steps dependencies if needed
+# RUN npx motia@latest install
 
-# Copy dependencies and built application
-COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/steps ./steps
-COPY --from=builder --chown=nodejs:nodejs /app/services ./services
+# Build the Motia project
+RUN npx motia build
 
-# Install Python dependencies if any
-COPY requirements.txt* ./
-RUN if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+# Expose the Motia port
+EXPOSE 3001
 
-USER nodejs
-
-EXPOSE 3000
-
-CMD ["npm", "run", "start"]
+# Use the shell script through sh
+CMD ["sh", "/app/start-debug.sh"]

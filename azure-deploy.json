@@ -99,10 +99,7 @@
   "variables": {
     "containerRegistryName": "[concat('finagentacr', uniqueString(resourceGroup().id))]",
     "backendImageName": "finagent-backend:latest",
-    "webImageName": "finagent-web:latest",
-    "networkSecurityGroupName": "[concat(parameters('containerGroupName'), '-nsg')]",
-    "virtualNetworkName": "[concat(parameters('containerGroupName'), '-vnet')]",
-    "subnetName": "container-subnet"
+    "webImageName": "finagent-web:latest"
   },
   "resources": [
     {
@@ -124,90 +121,6 @@
       }
     },
     {
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "apiVersion": "2023-05-01",
-      "name": "[variables('networkSecurityGroupName')]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "AllowHTTP",
-            "properties": {
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3000",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 1000,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "AllowAPI",
-            "properties": {
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3001",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 1010,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "DenyAll",
-            "properties": {
-              "protocol": "*",
-              "sourcePortRange": "*",
-              "destinationPortRange": "*",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Deny",
-              "priority": 4000,
-              "direction": "Inbound"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "type": "Microsoft.Network/virtualNetworks",
-      "apiVersion": "2023-05-01",
-      "name": "[variables('virtualNetworkName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
-      ],
-      "properties": {
-        "addressSpace": {
-          "addressPrefixes": [
-            "10.0.0.0/16"
-          ]
-        },
-        "subnets": [
-          {
-            "name": "[variables('subnetName')]",
-            "properties": {
-              "addressPrefix": "10.0.0.0/24",
-              "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
-              },
-              "delegations": [
-                {
-                  "name": "containerGroupDelegation",
-                  "properties": {
-                    "serviceName": "Microsoft.ContainerInstance/containerGroups"
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
       "type": "Microsoft.ContainerRegistry/registries",
       "apiVersion": "2023-01-01-preview",
       "name": "[variables('containerRegistryName')]",
@@ -226,7 +139,7 @@
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Cache/redis', parameters('redisName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]"
       ],
       "properties": {
         "containers": [
@@ -371,11 +284,6 @@
           ],
           "dnsNameLabel": "[concat('finagent-', uniqueString(resourceGroup().id))]"
         },
-        "subnetIds": [
-          {
-            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
-          }
-        ],
         "imageRegistryCredentials": [
           {
             "server": "[concat(variables('containerRegistryName'), '.azurecr.io')]",

@@ -16,7 +16,8 @@ export interface AssistantProfile {
   name: string;
   description: string;
   color: string;
-  icon: React.ComponentType<{ className?: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: any; // Using any to avoid type issues with Lucide icons
   expertise: string[];
 }
 

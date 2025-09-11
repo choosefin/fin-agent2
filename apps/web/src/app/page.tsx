@@ -67,7 +67,7 @@ export default function HomePage() {
                 <span className="font-medium">$0.00</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Today's Change</span>
+                <span className="text-gray-600 dark:text-gray-400">Today&apos;s Change</span>
                 <span className="font-medium text-green-500">+0.00%</span>
               </div>
               <div className="flex justify-between">

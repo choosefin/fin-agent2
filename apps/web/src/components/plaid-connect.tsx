@@ -73,7 +73,7 @@ export function PlaidConnect({ onSuccess, onExit }: PlaidConnectProps) {
         setError('Failed to connect account. Please try again.');
       }
     },
-    onExit: (error, metadata) => {
+    onExit: (error) => {
       if (error) {
         console.error('Plaid Link error:', error);
         setError('Connection cancelled or failed');

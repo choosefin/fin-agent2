@@ -2,6 +2,7 @@ import { Mastra } from '@mastra/core';
 import { config as dotenvConfig } from 'dotenv';
 import { authService } from '../../services/auth.service';
 import { secretsService } from '../../services/secrets.service';
+import { azureOpenAI } from '../../services/azure-openai.service';
 
 dotenvConfig();
 
@@ -23,9 +24,14 @@ export const supabase = authService.getPublicClient();
 // Initialize Mastra - simplified configuration
 export const mastra = new Mastra({});
 
-// LLM Configuration
+// LLM Configuration with Azure OpenAI as primary provider
 export const llmConfig = {
   providers: {
+    azure: {
+      client: azureOpenAI,
+      isConfigured: azureOpenAI.isConfigured(),
+      models: ['model-router'], // Azure model router handles model selection
+    },
     openai: {
       apiKey: process.env.OPENAI_API_KEY!,
       models: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
@@ -39,8 +45,8 @@ export const llmConfig = {
       models: ['llama-3-70b', 'llama-3-8b', 'mixtral-8x7b'],
     },
   },
-  defaultProvider: 'openai',
-  defaultModel: 'gpt-4',
+  defaultProvider: azureOpenAI.isConfigured() ? 'azure' : 'openai',
+  defaultModel: azureOpenAI.isConfigured() ? 'model-router' : 'gpt-4',
   fallbackProvider: 'groq',
   fallbackModel: 'llama-3-8b',
 };
