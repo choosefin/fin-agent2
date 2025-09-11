@@ -19,9 +19,34 @@ command -v docker >/dev/null 2>&1 || { echo -e "${RED}Docker is required but not
 
 # Load environment variables
 if [ -f .env.production ]; then
-    export $(cat .env.production | grep -v '^#' | xargs)
+    # Validate environment file before loading
+    if grep -q "^[A-Z_]*=" .env.production; then
+        set -a  # automatically export all variables
+        source .env.production
+        set +a
+        echo -e "${GREEN}Environment variables loaded from .env.production${NC}"
+    else
+        echo -e "${RED}Error: .env.production contains invalid format${NC}"
+        exit 1
+    fi
 else
     echo -e "${YELLOW}Warning: .env.production not found. Using defaults.${NC}"
+fi
+
+# Validate required environment variables
+required_vars=("SUPABASE_URL" "SUPABASE_ANON_KEY" "SUPABASE_SERVICE_KEY")
+missing_vars=()
+
+for var in "${required_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+        missing_vars+=("$var")
+    fi
+done
+
+if [ ${#missing_vars[@]} -ne 0 ]; then
+    echo -e "${RED}Error: Missing required environment variables: ${missing_vars[*]}${NC}"
+    echo -e "${YELLOW}Please set these variables in .env.production or environment${NC}"
+    exit 1
 fi
 
 # Set Azure variables
@@ -83,19 +108,48 @@ az deployment group create \
 # Get ACR credentials and login
 echo -e "${GREEN}Logging into Azure Container Registry...${NC}"
 ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer -o tsv)
-ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
-ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
+if [ -z "$ACR_LOGIN_SERVER" ]; then
+    echo -e "${RED}Error: Unable to get ACR login server${NC}"
+    exit 1
+fi
 
-docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD
+echo -e "${GREEN}ACR Login Server: $ACR_LOGIN_SERVER${NC}"
+
+# Use managed identity or service principal for production
+if ! docker login $ACR_LOGIN_SERVER --username 00000000-0000-0000-0000-000000000000 --password-stdin <<< $(az acr login --name $ACR_NAME --expose-token --output tsv --query accessToken) 2>/dev/null; then
+    echo -e "${YELLOW}Managed identity login failed, trying admin credentials...${NC}"
+    ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
+    ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
+    
+    if [ -z "$ACR_USERNAME" ] || [ -z "$ACR_PASSWORD" ]; then
+        echo -e "${RED}Error: Unable to get ACR credentials${NC}"
+        exit 1
+    fi
+    
+    docker login $ACR_LOGIN_SERVER -u "$ACR_USERNAME" -p "$ACR_PASSWORD"
+fi
 
 # Push images to ACR
 echo -e "${GREEN}Pushing images to Azure Container Registry...${NC}"
-docker push $ACR_NAME.azurecr.io/finagent-backend:latest
-docker push $ACR_NAME.azurecr.io/finagent-web:latest
+if ! docker push $ACR_NAME.azurecr.io/finagent-backend:latest; then
+    echo -e "${RED}Error: Failed to push backend image${NC}"
+    exit 1
+fi
+
+if ! docker push $ACR_NAME.azurecr.io/finagent-web:latest; then
+    echo -e "${RED}Error: Failed to push web image${NC}"
+    exit 1
+fi
+
+# Wait for images to be available in registry
+echo -e "${GREEN}Waiting for images to be available in registry...${NC}"
+sleep 10
 
 # Restart container group to pull latest images
 echo -e "${GREEN}Restarting container instances...${NC}"
-az container restart --resource-group $RESOURCE_GROUP --name $CONTAINER_GROUP_NAME
+if ! az container restart --resource-group $RESOURCE_GROUP --name $CONTAINER_GROUP_NAME; then
+    echo -e "${YELLOW}Warning: Container restart failed. This may be normal if containers are already running latest images.${NC}"
+fi
 
 # Get deployment outputs
 echo -e "${GREEN}Deployment complete! Getting deployment information...${NC}"
