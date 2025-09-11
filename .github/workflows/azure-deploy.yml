@@ -53,13 +53,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd apps/backend
-        pnpm install --frozen-lockfile
+        pnpm install --frozen-lockfile --filter=backend...
 
     - name: Build backend
       run: |
-        cd apps/backend
-        pnpm run build || echo "Build script not found, skipping build"
+        pnpm run build --filter=backend || echo "Build script not found, skipping build"
 
     - name: Create deployment package
       run: |
@@ -115,13 +113,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd apps/web
-        pnpm install --frozen-lockfile
+        pnpm install --frozen-lockfile --filter=web...
 
     - name: Build frontend
       run: |
-        cd apps/web
-        pnpm run build
+        pnpm run build --filter=web
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
