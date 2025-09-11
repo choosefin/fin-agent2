@@ -1,0 +1,314 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "containerGroupName": {
+      "type": "string",
+      "defaultValue": "finagent-container-group",
+      "metadata": {
+        "description": "Name of the container group"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "redisName": {
+      "type": "string",
+      "defaultValue": "finagent-redis",
+      "metadata": {
+        "description": "Name of the Azure Cache for Redis instance"
+      }
+    },
+    "supabaseUrl": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Supabase URL"
+      }
+    },
+    "supabaseAnonKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Supabase Anonymous Key"
+      }
+    },
+    "supabaseServiceKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Supabase Service Key"
+      }
+    },
+    "plaidClientId": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Plaid Client ID"
+      }
+    },
+    "plaidSecret": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Plaid Secret"
+      }
+    },
+    "polygonApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Polygon API Key"
+      }
+    },
+    "alpacaApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Alpaca API Key"
+      }
+    },
+    "alpacaSecretKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Alpaca Secret Key"
+      }
+    },
+    "openaiApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "OpenAI API Key"
+      }
+    },
+    "anthropicApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Anthropic API Key"
+      }
+    },
+    "groqApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Groq API Key"
+      }
+    },
+    "mem0ApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Mem0 API Key"
+      }
+    }
+  },
+  "variables": {
+    "containerRegistryName": "[concat('finagentacr', uniqueString(resourceGroup().id))]",
+    "backendImageName": "finagent-backend:latest",
+    "webImageName": "finagent-web:latest"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Cache/redis",
+      "apiVersion": "2023-08-01",
+      "name": "[parameters('redisName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "Basic",
+          "family": "C",
+          "capacity": 0
+        },
+        "enableNonSslPort": true,
+        "minimumTlsVersion": "1.2",
+        "redisConfiguration": {
+          "maxmemory-policy": "allkeys-lru"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-01-01-preview",
+      "name": "[variables('containerRegistryName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": true
+      }
+    },
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('containerGroupName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cache/redis', parameters('redisName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "backend",
+            "properties": {
+              "image": "[concat(variables('containerRegistryName'), '.azurecr.io/', variables('backendImageName'))]",
+              "ports": [
+                {
+                  "port": 3001,
+                  "protocol": "TCP"
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "PORT",
+                  "value": "3001"
+                },
+                {
+                  "name": "SUPABASE_URL",
+                  "secureValue": "[parameters('supabaseUrl')]"
+                },
+                {
+                  "name": "SUPABASE_ANON_KEY",
+                  "secureValue": "[parameters('supabaseAnonKey')]"
+                },
+                {
+                  "name": "SUPABASE_SERVICE_KEY",
+                  "secureValue": "[parameters('supabaseServiceKey')]"
+                },
+                {
+                  "name": "PLAID_CLIENT_ID",
+                  "secureValue": "[parameters('plaidClientId')]"
+                },
+                {
+                  "name": "PLAID_SECRET",
+                  "secureValue": "[parameters('plaidSecret')]"
+                },
+                {
+                  "name": "PLAID_ENV",
+                  "value": "sandbox"
+                },
+                {
+                  "name": "POLYGON_API_KEY",
+                  "secureValue": "[parameters('polygonApiKey')]"
+                },
+                {
+                  "name": "ALPACA_API_KEY",
+                  "secureValue": "[parameters('alpacaApiKey')]"
+                },
+                {
+                  "name": "ALPACA_SECRET_KEY",
+                  "secureValue": "[parameters('alpacaSecretKey')]"
+                },
+                {
+                  "name": "OPENAI_API_KEY",
+                  "secureValue": "[parameters('openaiApiKey')]"
+                },
+                {
+                  "name": "ANTHROPIC_API_KEY",
+                  "secureValue": "[parameters('anthropicApiKey')]"
+                },
+                {
+                  "name": "GROQ_API_KEY",
+                  "secureValue": "[parameters('groqApiKey')]"
+                },
+                {
+                  "name": "REDIS_URL",
+                  "value": "[concat('redis://', reference(resourceId('Microsoft.Cache/redis', parameters('redisName'))).hostName, ':', reference(resourceId('Microsoft.Cache/redis', parameters('redisName'))).sslPort, '?password=', listKeys(resourceId('Microsoft.Cache/redis', parameters('redisName')), '2023-08-01').primaryKey)]"
+                },
+                {
+                  "name": "MEM0_API_KEY",
+                  "secureValue": "[parameters('mem0ApiKey')]"
+                },
+                {
+                  "name": "MEM0_ENDPOINT",
+                  "value": "https://api.mem0.ai"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": 2,
+                  "memoryInGB": 4
+                }
+              }
+            }
+          },
+          {
+            "name": "web",
+            "properties": {
+              "image": "[concat(variables('containerRegistryName'), '.azurecr.io/', variables('webImageName'))]",
+              "ports": [
+                {
+                  "port": 3000,
+                  "protocol": "TCP"
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "NEXT_PUBLIC_API_URL",
+                  "value": "http://localhost:3001"
+                },
+                {
+                  "name": "NEXT_PUBLIC_SUPABASE_URL",
+                  "value": "[parameters('supabaseUrl')]"
+                },
+                {
+                  "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+                  "value": "[parameters('supabaseAnonKey')]"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": 1,
+                  "memoryInGB": 2
+                }
+              }
+            }
+          }
+        ],
+        "osType": "Linux",
+        "restartPolicy": "OnFailure",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [
+            {
+              "port": 3000,
+              "protocol": "TCP"
+            },
+            {
+              "port": 3001,
+              "protocol": "TCP"
+            }
+          ],
+          "dnsNameLabel": "[concat('finagent-', uniqueString(resourceGroup().id))]"
+        },
+        "imageRegistryCredentials": [
+          {
+            "server": "[concat(variables('containerRegistryName'), '.azurecr.io')]",
+            "username": "[variables('containerRegistryName')]",
+            "password": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), '2023-01-01-preview').passwords[0].value]"
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "containerGroupFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn]"
+    },
+    "webAppUrl": {
+      "type": "string",
+      "value": "[concat('http://', reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn, ':3000')]"
+    },
+    "apiUrl": {
+      "type": "string",
+      "value": "[concat('http://', reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn, ':3001')]"
+    },
+    "containerRegistryLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))).loginServer]"
+    }
+  }
+}

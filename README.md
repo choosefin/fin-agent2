@@ -92,6 +92,9 @@ finagent2/
 - **Event-Driven Backend**: Motia orchestration with API, Event, and Cron steps
 - **Cloud Native**: Azure container deployment with auto-scaling
 - **Real-time Updates**: WebSocket support for live data streaming
+- **Performance Optimization**: Redis caching layer for market data and API responses
+- **Monorepo Management**: Turborepo for optimized builds and caching
+- **Multi-Stage Docker**: Optimized container builds for production deployment
 
 ## Tech Stack
 
@@ -101,6 +104,7 @@ finagent2/
 - **Architecture**: Step-based (API, Event, Cron, NOOP steps)
 - **AI Framework**: AgentScope for multi-agent orchestration
 - **Memory**: mem0 for persistent agent memory
+- **Caching**: Redis for high-performance data caching
 - **Validation**: Zod schemas
 - **State**: Built-in state management with traceId scoping
 
@@ -202,16 +206,41 @@ The Next.js frontend communicates with the Motia backend through:
 
 ## Deployment
 
+### Local Development with Docker
+```bash
+# Start all services (backend, frontend, Redis)
+docker-compose up
+
+# Access services
+# - Frontend: http://localhost:3000
+# - Backend API: http://localhost:3001
+# - Redis: localhost:6379
+```
+
+### Azure Deployment
+```bash
+# Deploy to Azure Container Instances
+./scripts/azure-deploy.sh
+
+# Or use ARM template directly
+az deployment group create \
+  --resource-group finagent-rg \
+  --template-file azure-deploy.json \
+  --parameters azure-deploy.parameters.json
+```
+
 ### Backend (Motia)
 - Deploy using Motia's built-in deployment tools
 - Supports AWS Lambda, Google Cloud Functions, Azure Functions
-- Container deployment via Docker
+- Container deployment via Docker with multi-stage builds
+- Redis caching layer for improved performance
 
 ### Frontend (Next.js)
 - Vercel (recommended)
 - Netlify
 - AWS Amplify
 - Self-hosted via Docker
+- Azure Container Instances (production)
 
 ## Scripts
 
