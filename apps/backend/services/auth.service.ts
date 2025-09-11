@@ -61,7 +61,7 @@ export class AuthService {
     const sessionId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    const { data, error } = await this.supabaseAdminClient
+    const { data, error } = await this.supabaseClient
       .from('user_sessions')
       .insert({
         id: sessionId,
@@ -77,6 +77,7 @@ export class AuthService {
       throw new Error('Failed to create session');
     }
 
+    await this.logSecurityEvent('SESSION_CREATED', userId, { sessionId });
     return data;
   }
 
@@ -152,7 +153,7 @@ export class AuthService {
     const apiKey = `sk_${crypto.randomBytes(32).toString('hex')}`;
     const hashedKey = crypto.createHash('sha256').update(apiKey).digest('hex');
 
-    const { data, error } = await this.supabaseAdminClient
+    const { data, error } = await this.supabaseClient
       .from('api_keys')
       .insert({
         user_id: userId,
@@ -169,6 +170,7 @@ export class AuthService {
       throw new Error('Failed to create API key');
     }
 
+    await this.logSecurityEvent('API_KEY_CREATED', userId, { keyName: name });
     // Return the API key only once (user must save it)
     return { ...data, apiKey };
   }
@@ -206,12 +208,127 @@ export class AuthService {
   }
 
   /**
-   * Get admin client (use with caution, only for admin operations)
+   * Admin operations - specific methods only, no direct client access
    */
-  getAdminClient() {
-    // Log admin client usage for audit
-    console.warn('Admin client accessed - ensure this is intentional');
-    return this.supabaseAdminClient;
+  async adminCreateUser(email: string, password: string, metadata?: Record<string, any>) {
+    const { data, error } = await this.supabaseAdminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
+
+    if (error) {
+      throw new Error(`Failed to create user: ${error.message}`);
+    }
+
+    await this.logAdminAction('CREATE_USER', { email });
+    return data;
+  }
+
+  async adminUpdateUser(userId: string, updates: { email?: string; password?: string; metadata?: Record<string, any> }) {
+    const { data, error } = await this.supabaseAdminClient.auth.admin.updateUserById(
+      userId,
+      {
+        email: updates.email,
+        password: updates.password,
+        user_metadata: updates.metadata,
+      }
+    );
+
+    if (error) {
+      throw new Error(`Failed to update user: ${error.message}`);
+    }
+
+    await this.logAdminAction('UPDATE_USER', { userId });
+    return data;
+  }
+
+  async adminDeleteUser(userId: string) {
+    const { error } = await this.supabaseAdminClient.auth.admin.deleteUser(userId);
+
+    if (error) {
+      throw new Error(`Failed to delete user: ${error.message}`);
+    }
+
+    await this.logAdminAction('DELETE_USER', { userId });
+  }
+
+  async adminListUsers(page: number = 1, perPage: number = 50) {
+    const { data, error } = await this.supabaseAdminClient.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+
+    if (error) {
+      throw new Error(`Failed to list users: ${error.message}`);
+    }
+
+    await this.logAdminAction('LIST_USERS', { page, perPage });
+    return data;
+  }
+
+  async adminGrantPermission(userId: string, resource: string, action: string) {
+    const { error } = await this.supabaseAdminClient
+      .from('user_permissions')
+      .insert({
+        user_id: userId,
+        resource,
+        action,
+        granted_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      throw new Error(`Failed to grant permission: ${error.message}`);
+    }
+
+    await this.logAdminAction('GRANT_PERMISSION', { userId, resource, action });
+  }
+
+  async adminRevokePermission(userId: string, resource: string, action: string) {
+    const { error } = await this.supabaseAdminClient
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('resource', resource)
+      .eq('action', action);
+
+    if (error) {
+      throw new Error(`Failed to revoke permission: ${error.message}`);
+    }
+
+    await this.logAdminAction('REVOKE_PERMISSION', { userId, resource, action });
+  }
+
+  private async logAdminAction(action: string, details: Record<string, any>) {
+    try {
+      await this.supabaseClient
+        .from('audit_logs')
+        .insert({
+          action: `ADMIN_${action}`,
+          resource_type: 'admin',
+          details,
+          created_at: new Date().toISOString(),
+        });
+    } catch (error) {
+      console.error('Failed to log admin action:', error);
+    }
+  }
+
+  private async logSecurityEvent(event: string, userId: string, details: Record<string, any>) {
+    try {
+      await this.supabaseClient
+        .from('security_events')
+        .insert({
+          event_type: event,
+          severity: 'low',
+          user_id: userId,
+          details,
+          created_at: new Date().toISOString(),
+        });
+    } catch (error) {
+      console.error('Failed to log security event:', error);
+    }
   }
 }
 

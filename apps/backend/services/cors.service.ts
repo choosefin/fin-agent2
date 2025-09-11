@@ -6,7 +6,8 @@ const corsConfigSchema = z.object({
     z.string(),
     z.boolean(),
     z.array(z.string()),
-    z.function().args(z.string(), z.function()).returns(z.void()),
+    z.instanceof(RegExp),
+    z.array(z.instanceof(RegExp)),
   ]),
   methods: z.array(z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'])),
   allowedHeaders: z.array(z.string()),
@@ -56,20 +57,17 @@ export class CorsService {
     } else {
       // Development configuration - more permissive
       return {
-        origin: (origin, callback) => {
-          // Allow localhost and common development ports
-          const allowedPatterns = [
-            /^http:\/\/localhost:\d+$/,
-            /^http:\/\/127\.0\.0\.1:\d+$/,
-            /^http:\/\/0\.0\.0\.0:\d+$/,
-          ];
-
-          if (!origin || allowedPatterns.some(pattern => pattern.test(origin))) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
-        },
+        origin: [
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:5173',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001',
+          'http://127.0.0.1:5173',
+          'http://0.0.0.0:3000',
+          'http://0.0.0.0:3001',
+          'http://0.0.0.0:5173',
+        ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
         allowedHeaders: [
           'Content-Type',
@@ -138,17 +136,17 @@ export class CorsService {
     }
 
     if (Array.isArray(configOrigin)) {
-      return configOrigin.includes(origin);
+      // Check if any element is a RegExp or string
+      return configOrigin.some(allowed => {
+        if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return allowed === origin;
+      });
     }
 
-    if (typeof configOrigin === 'function') {
-      let allowed = false;
-      configOrigin(origin, (err, result) => {
-        if (!err && result) {
-          allowed = true;
-        }
-      });
-      return allowed;
+    if (configOrigin instanceof RegExp) {
+      return configOrigin.test(origin);
     }
 
     return false;

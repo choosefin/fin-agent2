@@ -1,4 +1,5 @@
 import { authService } from '../services/auth.service';
+import { rateLimitService } from '../services/rate-limit.service';
 import { z } from 'zod';
 
 export interface AuthContext {
@@ -160,32 +161,18 @@ export async function validateUserContext(
 }
 
 /**
- * Rate limiting helper
+ * Rate limiting helper using the rate limit service
  */
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-export function checkRateLimit(
+export async function checkRateLimit(
   userId: string,
   limit: number = 100,
   windowMs: number = 60000 // 1 minute
-): boolean {
-  const now = Date.now();
-  const userLimit = rateLimitMap.get(userId);
-
-  if (!userLimit || userLimit.resetTime < now) {
-    rateLimitMap.set(userId, {
-      count: 1,
-      resetTime: now + windowMs,
-    });
-    return true;
-  }
-
-  if (userLimit.count >= limit) {
-    return false;
-  }
-
-  userLimit.count++;
-  return true;
+): Promise<{ allowed: boolean; retryAfter?: number; remaining?: number }> {
+  return await rateLimitService.checkRateLimit(userId, {
+    max: limit,
+    windowMs,
+    keyPrefix: 'api',
+  });
 }
 
 /**
@@ -225,10 +212,20 @@ export function withAuth<T extends AuthenticatedRequest>(
       // Check rate limit
       if (options?.rateLimit) {
         const { limit, windowMs } = options.rateLimit;
-        if (!checkRateLimit(auth.userId, limit, windowMs)) {
+        const rateLimitResult = await checkRateLimit(auth.userId, limit, windowMs);
+        
+        if (!rateLimitResult.allowed) {
           return {
             status: 429,
-            body: { error: 'Rate limit exceeded' },
+            headers: {
+              'Retry-After': rateLimitResult.retryAfter?.toString() || '60',
+              'X-RateLimit-Limit': limit.toString(),
+              'X-RateLimit-Remaining': '0',
+            },
+            body: { 
+              error: 'Rate limit exceeded',
+              retryAfter: rateLimitResult.retryAfter,
+            },
           };
         }
       }
