@@ -169,9 +169,29 @@ export class CorsService {
    * Validate request origin
    */
   validateOrigin(origin: string | undefined): boolean {
+    // Always validate origin, even in development
+    if (!origin) {
+      // Allow requests without origin header (e.g., same-origin, Postman)
+      return process.env.NODE_ENV !== 'production';
+    }
+
+    // In development, check against allowed development origins
     if (process.env.NODE_ENV !== 'production') {
-      // In development, be more permissive
-      return true;
+      const devOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://127.0.0.1:5173',
+        'http://0.0.0.0:3000',
+        'http://0.0.0.0:3001',
+        'http://0.0.0.0:5173',
+      ];
+      
+      // Also check if it matches a localhost pattern with any port
+      const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0):\d{1,5}$/;
+      return devOrigins.includes(origin) || localhostPattern.test(origin);
     }
 
     return this.isOriginAllowed(origin);

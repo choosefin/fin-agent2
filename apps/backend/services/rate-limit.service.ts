@@ -21,8 +21,11 @@ export class RateLimitService {
   private redis: Redis | null = null;
   private cleanupInterval: NodeJS.Timeout | null = null;
   private useRedis: boolean = false;
-  private cleanupIntervalMs: number = 60000; // 1 minute
-  private maxMemoryEntries: number = 10000; // Maximum entries before forced cleanup
+  private cleanupIntervalMs: number = 30000; // 30 seconds - more frequent cleanup
+  private maxMemoryEntries: number = 5000; // Lower threshold for better memory management
+  private warningThreshold: number = 4000; // Start proactive cleanup at 80% capacity
+  private lastCleanupTime: number = Date.now();
+  private cleanupInProgress: boolean = false;
 
   constructor() {
     this.initializeStore();
@@ -94,10 +97,17 @@ export class RateLimitService {
   /**
    * Clean up expired entries from memory or Redis
    */
-  public async cleanup() {
+  public async cleanup(force: boolean = false) {
+    // Prevent concurrent cleanups
+    if (this.cleanupInProgress && !force) {
+      return;
+    }
+    
+    this.cleanupInProgress = true;
     const now = Date.now();
     
-    if (this.useRedis && this.redis) {
+    try {
+      if (this.useRedis && this.redis) {
       // Redis cleanup using Lua script for atomic operation
       const luaScript = `
         local keys = redis.call('keys', ARGV[1] .. '*')
@@ -134,10 +144,52 @@ export class RateLimitService {
         console.log(`Cleaned up ${deleted} expired rate limit entries from memory`);
       }
 
+      // Proactive cleanup if approaching threshold
+      if (this.memoryStore.size > this.warningThreshold) {
+        console.warn(`Memory store at ${this.memoryStore.size} entries (warning threshold: ${this.warningThreshold})`);
+        this.proactiveMemoryCleanup();
+      }
+      
       // Force cleanup if memory store is too large
       if (this.memoryStore.size > this.maxMemoryEntries) {
         this.forceMemoryCleanup();
       }
+    }
+    
+    this.lastCleanupTime = now;
+    } finally {
+      this.cleanupInProgress = false;
+    }
+  }
+
+  /**
+   * Proactive cleanup when approaching memory limits
+   */
+  private proactiveMemoryCleanup() {
+    const now = Date.now();
+    const entries = Array.from(this.memoryStore.entries());
+    
+    // Sort by reset time and remove entries that will expire soon
+    entries.sort((a, b) => a[1].resetTime - b[1].resetTime);
+    
+    // Remove entries that expire in the next 5 minutes
+    const fiveMinutesFromNow = now + 5 * 60 * 1000;
+    let removed = 0;
+    
+    for (const [key, info] of entries) {
+      if (info.resetTime < fiveMinutesFromNow && !info.blocked) {
+        this.memoryStore.delete(key);
+        removed++;
+        
+        // Stop if we're below warning threshold
+        if (this.memoryStore.size < this.warningThreshold * 0.7) {
+          break;
+        }
+      }
+    }
+    
+    if (removed > 0) {
+      console.log(`Proactively cleaned up ${removed} rate limit entries`);
     }
   }
 
@@ -146,14 +198,37 @@ export class RateLimitService {
    */
   private forceMemoryCleanup() {
     const entries = Array.from(this.memoryStore.entries());
-    entries.sort((a, b) => a[1].resetTime - b[1].resetTime);
+    const now = Date.now();
     
-    const toDelete = Math.floor(this.maxMemoryEntries * 0.2); // Remove 20% of oldest entries
-    for (let i = 0; i < toDelete; i++) {
-      this.memoryStore.delete(entries[i][0]);
+    // Separate blocked and non-blocked entries
+    const blocked = entries.filter(([_, info]) => info.blocked && info.blockedUntil && info.blockedUntil > now);
+    const nonBlocked = entries.filter(([_, info]) => !info.blocked || !info.blockedUntil || info.blockedUntil <= now);
+    
+    // Sort non-blocked by reset time (oldest first)
+    nonBlocked.sort((a, b) => a[1].resetTime - b[1].resetTime);
+    
+    // Remove non-blocked entries first
+    const toDelete = Math.floor(this.maxMemoryEntries * 0.3); // Remove 30% to create more headroom
+    let deleted = 0;
+    
+    for (const [key] of nonBlocked) {
+      if (deleted >= toDelete) break;
+      this.memoryStore.delete(key);
+      deleted++;
     }
     
-    console.warn(`Forced cleanup: removed ${toDelete} oldest rate limit entries`);
+    // If still over limit, remove oldest blocked entries
+    if (this.memoryStore.size > this.maxMemoryEntries && blocked.length > 0) {
+      blocked.sort((a, b) => (a[1].blockedUntil || 0) - (b[1].blockedUntil || 0));
+      
+      for (const [key] of blocked) {
+        if (deleted >= toDelete) break;
+        this.memoryStore.delete(key);
+        deleted++;
+      }
+    }
+    
+    console.warn(`Forced cleanup: removed ${deleted} rate limit entries (${this.memoryStore.size} remaining)`);
   }
 
   /**
@@ -254,6 +329,14 @@ export class RateLimitService {
     now: number,
     resetTime: number
   ): { allowed: boolean; retryAfter?: number; remaining?: number } {
+    // Check if we need emergency cleanup
+    if (this.memoryStore.size > this.maxMemoryEntries * 0.9) {
+      // Run cleanup in background if not already running
+      if (!this.cleanupInProgress) {
+        this.cleanup(true).catch(console.error);
+      }
+    }
+    
     let info = this.memoryStore.get(key);
 
     // Clean up expired entry
@@ -373,11 +456,29 @@ export class RateLimitService {
       };
     }
 
+    const now = Date.now();
+    let blockedCount = 0;
+    let expiredCount = 0;
+    
+    for (const [_, info] of this.memoryStore.entries()) {
+      if (info.blocked && info.blockedUntil && info.blockedUntil > now) {
+        blockedCount++;
+      }
+      if (info.resetTime < now) {
+        expiredCount++;
+      }
+    }
+
     return {
       type: 'memory',
       entries: this.memoryStore.size,
       maxEntries: this.maxMemoryEntries,
+      warningThreshold: this.warningThreshold,
       utilizationPercent: (this.memoryStore.size / this.maxMemoryEntries) * 100,
+      blockedEntries: blockedCount,
+      expiredEntries: expiredCount,
+      lastCleanup: new Date(this.lastCleanupTime).toISOString(),
+      cleanupInProgress: this.cleanupInProgress,
     };
   }
 
