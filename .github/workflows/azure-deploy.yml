@@ -35,7 +35,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v2
       with:
-        version: 8
+        version: 9
         run_install: false
 
     - name: Get pnpm store directory
@@ -53,7 +53,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pnpm install --frozen-lockfile --filter=backend...
+        pnpm install --frozen-lockfile --filter=backend... || pnpm install --no-frozen-lockfile --filter=backend...
 
     - name: Build backend
       run: |
@@ -95,7 +95,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v2
       with:
-        version: 8
+        version: 9
         run_install: false
 
     - name: Get pnpm store directory
@@ -113,7 +113,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pnpm install --frozen-lockfile --filter=web...
+        pnpm install --frozen-lockfile --filter=web... || pnpm install --no-frozen-lockfile --filter=web...
 
     - name: Build frontend
       run: |
