@@ -1,0 +1,2 @@
+# This file prevents Oryx from automatically running npm start after build
+# Required for Azure App Service deployment

@@ -1,0 +1,32 @@
+# Azure App Service configuration for Next.js
+runtime: node
+env: flex
+
+runtime_config:
+  operating_system: "ubuntu22"
+  runtime_version: "20"
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 10
+
+env_variables:
+  NODE_ENV: "production"
+  PORT: "8080"
+
+handlers:
+  - url: /_next/static
+    static_dir: .next/static
+    secure: always
+  
+  - url: /.*
+    script: auto
+    secure: always
+
+skip_files:
+  - node_modules/
+  - .git/
+  - .gitignore
+  - README.md
+  - .env.local
+  - .env.development
