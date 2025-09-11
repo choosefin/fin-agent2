@@ -26,6 +26,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      continue-on-error: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -100,12 +106,38 @@ jobs:
           -x "*.md" \
           -x ".DS_Store"
 
-    - name: Deploy to Azure Web App
+    - name: Stop Backend Deployment Slot (if exists)
+      run: |
+        az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+        sleep 5
+        az webapp start --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+      continue-on-error: true
+    
+    - name: Deploy Backend to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME_BACKEND }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: apps/backend/deploy.zip
+        clean: true
+        restart: true
+      timeout-minutes: 10
+      continue-on-error: true
+      id: deploy-backend
+    
+    - name: Retry Backend Deployment if Failed
+      if: steps.deploy-backend.outcome == 'failure'
+      run: |
+        echo "First deployment attempt failed, waiting 30 seconds before retry..."
+        sleep 30
+        # Try using Azure CLI directly
+        az webapp deployment source config-zip \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --src apps/backend/deploy.zip \
+          --timeout 600 || exit 1
 
   build-and-deploy-frontend:
     name: Build and Deploy Frontend
@@ -116,6 +148,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      continue-on-error: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -218,12 +256,38 @@ jobs:
           -x "*.md" \
           -x ".DS_Store"
 
-    - name: Deploy to Azure Web App
+    - name: Stop Frontend Deployment Slot (if exists)
+      run: |
+        az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+        sleep 5
+        az webapp start --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+      continue-on-error: true
+    
+    - name: Deploy Frontend to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME_FRONTEND }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
         package: apps/web/deploy.zip
+        clean: true
+        restart: true
+      timeout-minutes: 10
+      continue-on-error: true
+      id: deploy-frontend
+    
+    - name: Retry Frontend Deployment if Failed
+      if: steps.deploy-frontend.outcome == 'failure'
+      run: |
+        echo "First deployment attempt failed, waiting 30 seconds before retry..."
+        sleep 30
+        # Try using Azure CLI directly
+        az webapp deployment source config-zip \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --src apps/web/deploy.zip \
+          --timeout 600 || exit 1
 
   configure-app-settings:
     name: Configure App Settings
