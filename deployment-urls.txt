@@ -1,0 +1,5 @@
+Backend URL: https://finagent-backend-pps457j4wjrc6.azurewebsites.net
+Frontend URL: https://finagent-web-pps457j4wjrc6.azurewebsites.net
+Deployment Name: finagent-deployment-20250911-160201
+Resource Group: finagent-rg
+Timestamp: Thu Sep 11 16:02:34 EDT 2025

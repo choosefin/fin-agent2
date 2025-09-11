@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iChatbook - AI-Powered Business Insights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;500;600&family=Roboto+Mono:wght@300;400&display=swap');
+        
+        :root {
+            --copper: #B87333;
+            --copper-light: #D4914D;
+            --copper-dark: #8B5A2B;
+            --emerald: #50C878;
+            --emerald-light: #70D898;
+            --emerald-dark: #2E8B57;
+            --circuit-bg: #0A0E0F;
+            --circuit-bg-light: #151A1C;
+            --gold: #FFD700;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--circuit-bg);
+            color: #E8E8E8;
+            font-family: 'Oswald', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Circuit Board Background Pattern */
+        .circuit-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.15;
+            z-index: 1;
+        }
+
+        .circuit-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, var(--copper), transparent);
+            animation: pulse 4s infinite;
+        }
+
+        .circuit-line.horizontal {
+            height: 2px;
+            width: 100%;
+        }
+
+        .circuit-line.vertical {
+            width: 2px;
+            height: 100%;
+        }
+
+        .circuit-node {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--emerald);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--emerald);
+            animation: glow 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px var(--emerald); }
+            50% { box-shadow: 0 0 20px var(--emerald), 0 0 30px var(--emerald-light); }
+        }
+
+        /* Art Deco Frame */
+        .deco-frame {
+            position: relative;
+            z-index: 10;
+            background: linear-gradient(135deg, var(--circuit-bg) 0%, var(--circuit-bg-light) 100%);
+            border: 2px solid var(--copper);
+            clip-path: polygon(30px 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%, 0 30px);
+            padding: 40px;
+            box-shadow: 
+                inset 0 0 30px rgba(184, 115, 51, 0.2),
+                0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .deco-corner {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--copper);
+        }
+
+        .deco-corner::before {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: var(--copper);
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+
+        .deco-corner.top-left {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .deco-corner.top-right {
+            top: -2px;
+            right: -2px;
+            border-left: none;
+            border-bottom: none;
+            transform: rotate(90deg);
+        }
+
+        .deco-corner.bottom-left {
+            bottom: -2px;
+            left: -2px;
+            border-right: none;
+            border-top: none;
+            transform: rotate(-90deg);
+        }
+
+        .deco-corner.bottom-right {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+            transform: rotate(180deg);
+        }
+
+        /* Typography */
+        .deco-title {
+            font-family: 'Bebas Neue', cursive;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            letter-spacing: 0.08em;
+            background: linear-gradient(135deg, var(--copper-light), var(--gold), var(--copper));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(184, 115, 51, 0.3);
+        }
+
+        .tagline {
+            font-family: 'Oswald', sans-serif;
+            font-weight: 300;
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            color: var(--emerald-light);
+            text-align: center;
+            letter-spacing: 0.05em;
+            margin-bottom: 3rem;
+        }
+
+        /* Book Cards */
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .book-card {
+            position: relative;
+            background: linear-gradient(135deg, rgba(184, 115, 51, 0.1), rgba(80, 200, 120, 0.05));
+            border: 1px solid var(--copper);
+            padding: 1.5rem;
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(80, 200, 120, 0.3);
+            border-color: var(--emerald);
+        }
+
+        .book-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(184, 115, 51, 0.03) 10px,
+                    rgba(184, 115, 51, 0.03) 20px
+                );
+            pointer-events: none;
+        }
+
+        .book-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--copper);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .book-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--copper-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .book-author {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--emerald);
+            margin-bottom: 1rem;
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            background: rgba(21, 26, 28, 0.9);
+            border: 2px solid var(--copper);
+            border-radius: 0;
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .chat-header {
+            border-bottom: 1px solid var(--copper);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--emerald);
+            border-radius: 50%;
+            animation: glow 2s infinite;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding-right: 1rem;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(184, 115, 51, 0.1);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--copper);
+            border-radius: 4px;
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .message.ai {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--copper-dark), var(--copper));
+            color: white;
+            display: inline-block;
+            padding: 0.8rem 1.2rem;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--emerald-dark), var(--emerald));
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            background: rgba(80, 200, 120, 0.1);
+            border-left: 2px solid var(--emerald);
+            padding: 0.8rem 1.2rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(184, 115, 51, 0.1);
+            border: 1px solid var(--copper);
+            color: white;
+            padding: 1rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--emerald);
+            background: rgba(80, 200, 120, 0.05);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, var(--copper), var(--copper-light));
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-family: 'Oswald', sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: all 0.3s ease;
+        }
+
+        .send-button:hover {
+            background: linear-gradient(135deg, var(--emerald-dark), var(--emerald));
+            transform: translateY(-2px);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        /* Feature Cards */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+
+        .feature-card {
+            background: rgba(184, 115, 51, 0.05);
+            border: 1px solid var(--copper);
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(80, 200, 120, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            border-color: var(--emerald);
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--emerald);
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.1rem;
+            color: var(--copper-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-description {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            color: #A8A8A8;
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .deco-frame {
+                padding: 20px;
+            }
+            
+            .book-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Circuit Pattern Background -->
+    <div class="circuit-pattern">
+        <div class="circuit-line horizontal" style="top: 10%;"></div>
+        <div class="circuit-line horizontal" style="top: 30%;"></div>
+        <div class="circuit-line horizontal" style="top: 50%;"></div>
+        <div class="circuit-line horizontal" style="top: 70%;"></div>
+        <div class="circuit-line horizontal" style="top: 90%;"></div>
+        <div class="circuit-line vertical" style="left: 10%;"></div>
+        <div class="circuit-line vertical" style="left: 30%;"></div>
+        <div class="circuit-line vertical" style="left: 50%;"></div>
+        <div class="circuit-line vertical" style="left: 70%;"></div>
+        <div class="circuit-line vertical" style="left: 90%;"></div>
+        <div class="circuit-node" style="top: 10%; left: 10%;"></div>
+        <div class="circuit-node" style="top: 30%; left: 30%;"></div>
+        <div class="circuit-node" style="top: 50%; left: 50%;"></div>
+        <div class="circuit-node" style="top: 70%; left: 70%;"></div>
+        <div class="circuit-node" style="top: 90%; left: 90%;"></div>
+        <div class="circuit-node" style="top: 10%; left: 90%;"></div>
+        <div class="circuit-node" style="top: 90%; left: 10%;"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 relative z-10">
+        <div class="deco-frame">
+            <div class="deco-corner top-left"></div>
+            <div class="deco-corner top-right"></div>
+            <div class="deco-corner bottom-left"></div>
+            <div class="deco-corner bottom-right"></div>
+            
+            <h1 class="deco-title">iChatbook</h1>
+            <p class="tagline">Build Your Business, Faster: AI-Powered Insights from the World's Best Business Books</p>
+            
+            <!-- Featured Books -->
+            <div class="book-grid">
+                <div class="book-card" onclick="selectBook('Zero to One')">
+                    <div class="book-icon">
+                        <i class="fas fa-rocket" style="color: var(--circuit-bg);"></i>
+                    </div>
+                    <div class="book-title">Zero to One</div>
+                    <div class="book-author">Peter Thiel</div>
+                    <p style="font-size: 0.85rem; color: #A8A8A8;">Creating breakthrough innovations and monopolies</p>
+                </div>
+                
+                <div class="book-card" onclick="selectBook('The Lean Startup')">
+                    <div class="book-icon">
+                        <i class="fas fa-chart-line" style="color: var(--circuit-bg);"></i>
+                    </div>
+                    <div class="book-title">The Lean Startup</div>
+                    <div class="book-author">Eric Ries</div>
+                    <p style="font-size: 0.85rem; color: #A8A8A8;">Build-Measure-Learn feedback loops for rapid iteration</p>
+                </div>
+                
+                <div class="book-card" onclick="selectBook('Good to Great')">
+                    <div class="book-icon">
+                        <i class="fas fa-trophy" style="color: var(--circuit-bg);"></i>
+                    </div>
+                    <div class="book-title">Good to Great</div>
+                    <div class="book-author">Jim Collins</div>
+                    <p style="font-size: 0.85rem; color: #A8A8A8;">Transform your company from good to exceptional</p>
+                </div>
+            </div>
+            
+            <!-- Chat Interface -->
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3 style="font-family: 'Bebas Neue'; font-size: 1.5rem; color: var(--copper-light);">Ask Your Business Question</h3>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem;">AI Ready</span>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai">
+                        <div class="ai-avatar">
+                            <i class="fas fa-brain" style="color: var(--circuit-bg);"></i>
+                        </div>
+                        <div class="message-content">
+                            Welcome to iChatbook! I can help you extract actionable business insights from the world's best business books. Ask me about strategies, market research, competitive analysis, or how to apply specific principles to your industry.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="How can I apply Blue Ocean Strategy to my SaaS startup?">
+                    <button class="send-button" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i> SEND
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="feature-title">Actionable Strategies</div>
+                    <div class="feature-description">Extract practical frameworks directly applicable to your business</div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-industry"></i>
+                    </div>
+                    <div class="feature-title">Industry-Specific</div>
+                    <div class="feature-description">Get insights tailored to your specific market and vertical</div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="feature-title">Market Research</div>
+                    <div class="feature-description">Access proven methodologies for competitive analysis</div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="feature-title">Team Building</div>
+                    <div class="feature-description">Learn from the best on building high-performance teams</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedBook = null;
+        
+        function selectBook(bookName) {
+            selectedBook = bookName;
+            const chatMessages = document.getElementById('chatMessages');
+            
+            const message = document.createElement('div');
+            message.className = 'message ai';
+            message.innerHTML = `
+                <div class="ai-avatar">
+                    <i class="fas fa-book" style="color: var(--circuit-bg);"></i>
+                </div>
+                <div class="message-content">
+                    Great choice! I'm now ready to discuss "${bookName}" with you. What specific aspect of this book would you like to explore for your business?
+                </div>
+            `;
+            
+            chatMessages.appendChild(message);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Highlight selected book
+            document.querySelectorAll('.book-card').forEach(card => {
+                if (card.querySelector('.book-title').textContent === bookName) {
+                    card.style.borderColor = 'var(--emerald)';
+                    card.style.boxShadow = '0 0 20px rgba(80, 200, 120, 0.3)';
+                } else {
+                    card.style.borderColor = 'var(--copper)';
+                    card.style.boxShadow = 'none';
+                }
+            });
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            const chatMessages = document.getElementById('chatMessages');
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.innerHTML = `
+                <div class="message-content">${message}</div>
+            `;
+            chatMessages.appendChild(userMessage);
+            
+            // Clear input
+            input.value = '';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message ai';
+                
+                const responses = [
+                    "Based on the principles from this book, here's how you can apply them to your specific situation...",
+                    "That's an excellent question. The framework suggests three key approaches for your industry...",
+                    "Let me break down the actionable steps you can take immediately to implement this strategy...",
+                    "According to the research presented, successful companies in your sector have used this approach..."
+                ];
+                
+                aiMessage.innerHTML = `
+                    <div class="ai-avatar">
+                        <i class="fas fa-brain" style="color: var(--circuit-bg);"></i>
+                    </div>
+                    <div class="message-content">
+                        ${responses[Math.floor(Math.random() * responses.length)]}
+                    </div>
+                `;
+                
+                chatMessages.appendChild(aiMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Enter key to send
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Animate circuit nodes
+        document.querySelectorAll('.circuit-node').forEach((node, index) => {
+            node.style.animationDelay = `${index * 0.3}s`;
+        });
+    </script>
+</body>
+</html>
