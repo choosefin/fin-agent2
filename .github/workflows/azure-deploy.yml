@@ -66,31 +66,31 @@ jobs:
         rm -f .deployment deploy.cmd
         
         # Create a startup script for Azure Linux App Service
-        cat > startup.sh << 'EOF'
-#!/bin/bash
-echo "Starting Motia backend application..."
-cd /home/site/wwwroot
-
-# Install dependencies if node_modules doesn't exist
-if [ ! -d "node_modules" ]; then
-    echo "Installing dependencies..."
-    npm ci --only=production
-fi
-
-# Install Motia CLI globally if not present
-if ! command -v motia &> /dev/null; then
-    echo "Installing Motia CLI..."
-    npm install -g motia@0.6.4-beta.130
-fi
-
-# Build the Motia project
-echo "Building Motia backend..."
-motia build || echo "Build completed or not required"
-
-# Start the application
-echo "Starting Motia on port ${PORT:-3001}..."
-motia start --port ${PORT:-3001} --host 0.0.0.0
-EOF
+        cat > startup.sh << 'BACKEND_EOF'
+        #!/bin/bash
+        echo "Starting Motia backend application..."
+        cd /home/site/wwwroot
+        
+        # Install dependencies if node_modules doesn't exist
+        if [ ! -d "node_modules" ]; then
+            echo "Installing dependencies..."
+            npm ci --only=production
+        fi
+        
+        # Install Motia CLI globally if not present
+        if ! command -v motia &> /dev/null; then
+            echo "Installing Motia CLI..."
+            npm install -g motia@0.6.4-beta.130
+        fi
+        
+        # Build the Motia project
+        echo "Building Motia backend..."
+        motia build || echo "Build completed or not required"
+        
+        # Start the application
+        echo "Starting Motia on port \${PORT:-3001}..."
+        motia start --port \${PORT:-3001} --host 0.0.0.0
+        BACKEND_EOF
         
         chmod +x startup.sh
         
@@ -162,21 +162,21 @@ EOF
       run: |
         cd apps/web
         # Create startup script for Azure
-        cat > startup.sh << 'EOF'
-#!/bin/bash
-echo "Starting Next.js application..."
-cd /home/site/wwwroot
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "Installing dependencies..."
-    npm install --production
-fi
-
-# Start the application
-echo "Starting application on port 8080..."
-PORT=8080 npm start
-EOF
+        cat > startup.sh << 'FRONTEND_EOF'
+        #!/bin/bash
+        echo "Starting Next.js application..."
+        cd /home/site/wwwroot
+        
+        # Install dependencies if needed
+        if [ ! -d "node_modules" ]; then
+            echo "Installing dependencies..."
+            npm install --production
+        fi
+        
+        # Start the application
+        echo "Starting application on port 8080..."
+        PORT=8080 npm start
+        FRONTEND_EOF
         
         chmod +x startup.sh
         
