@@ -108,11 +108,19 @@ jobs:
 
     - name: Stop Backend Deployment Slot (if exists)
       run: |
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, using default"
+          RESOURCE_GROUP="finagent-rg"
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
         az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+          --resource-group "$RESOURCE_GROUP" || true
         sleep 5
         az webapp start --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+          --resource-group "$RESOURCE_GROUP" || true
       continue-on-error: true
     
     - name: Deploy Backend to Azure Web App
@@ -132,9 +140,23 @@ jobs:
       run: |
         echo "First deployment attempt failed, waiting 30 seconds before retry..."
         sleep 30
+        
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, trying to extract from app"
+          # Try to get resource group from the app itself
+          RESOURCE_GROUP=$(az webapp list --query "[?name=='${{ env.AZURE_WEBAPP_NAME_BACKEND }}'].resourceGroup" -o tsv 2>/dev/null || echo "")
+          if [ -z "$RESOURCE_GROUP" ]; then
+            echo "Could not determine resource group, using default: finagent-rg"
+            RESOURCE_GROUP="finagent-rg"
+          fi
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
         # Try using Azure CLI directly
         az webapp deployment source config-zip \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --resource-group "$RESOURCE_GROUP" \
           --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
           --src apps/backend/deploy.zip \
           --timeout 600 || exit 1
@@ -258,11 +280,19 @@ jobs:
 
     - name: Stop Frontend Deployment Slot (if exists)
       run: |
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, using default"
+          RESOURCE_GROUP="finagent-rg"
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
         az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+          --resource-group "$RESOURCE_GROUP" || true
         sleep 5
         az webapp start --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} || true
+          --resource-group "$RESOURCE_GROUP" || true
       continue-on-error: true
     
     - name: Deploy Frontend to Azure Web App
@@ -282,9 +312,23 @@ jobs:
       run: |
         echo "First deployment attempt failed, waiting 30 seconds before retry..."
         sleep 30
+        
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, trying to extract from app"
+          # Try to get resource group from the app itself
+          RESOURCE_GROUP=$(az webapp list --query "[?name=='${{ env.AZURE_WEBAPP_NAME_FRONTEND }}'].resourceGroup" -o tsv 2>/dev/null || echo "")
+          if [ -z "$RESOURCE_GROUP" ]; then
+            echo "Could not determine resource group, using default: finagent-rg"
+            RESOURCE_GROUP="finagent-rg"
+          fi
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
         # Try using Azure CLI directly
         az webapp deployment source config-zip \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --resource-group "$RESOURCE_GROUP" \
           --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
           --src apps/web/deploy.zip \
           --timeout 600 || exit 1

@@ -82,15 +82,19 @@ echo ""
 add_secret "AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND" "$BACKEND_PROFILE"
 add_secret "AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND" "$FRONTEND_PROFILE"
 
-# Add Azure credentials
-AZURE_CREDS='{
-  "clientId": "b626b472-136f-4bdd-8005-93094cab4fd9",
-  "clientSecret": "Mjj8Q~CzcsJpSpGdUD.M1ndJR3Jqpw7ShkT~Mco~",
-  "subscriptionId": "26f96bd0-8f15-4afe-9936-52103ffedcd5",
-  "tenantId": "3d4c932b-44e0-4ab0-8b26-c6c9db11fb85"
-}'
+# Add Azure resource group
+add_secret "AZURE_RESOURCE_GROUP" "finagent-rg"
 
-add_secret "AZURE_CREDENTIALS" "$AZURE_CREDS"
+# Add Azure credentials (should be in a separate secure file)
+if [ -f "azure-credentials.json" ]; then
+    echo "✅ Found azure-credentials.json"
+    AZURE_CREDS=$(cat azure-credentials.json)
+    add_secret "AZURE_CREDENTIALS" "$AZURE_CREDS"
+else
+    echo "⚠️  azure-credentials.json not found"
+    echo "   Create it with: az ad sp create-for-rbac --name github-actions --role contributor --scopes /subscriptions/YOUR_SUB_ID/resourceGroups/finagent-rg --sdk-auth > azure-credentials.json"
+    echo "   Then run this script again."
+fi
 
 # Check for .env.production file
 if [ -f ".env.production" ]; then
