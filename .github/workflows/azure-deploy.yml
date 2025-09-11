@@ -164,31 +164,78 @@ jobs:
       run: |
         cd apps/web
         
-        # Copy the built .next directory and necessary files
+        # Create deployment package with all necessary files
         mkdir -p deploy-package
-        cp -r .next deploy-package/
+        
+        # Copy source files (needed for Azure build)
+        cp -r src deploy-package/
         cp -r public deploy-package/ 2>/dev/null || true
+        
+        # Copy configuration files
         cp package.json deploy-package/
+        cp pnpm-lock.yaml deploy-package/ 2>/dev/null || true
         cp package-lock.json deploy-package/ 2>/dev/null || true
         cp next.config.ts deploy-package/ 2>/dev/null || true
         cp next.config.js deploy-package/ 2>/dev/null || true
+        cp tsconfig.json deploy-package/ 2>/dev/null || true
+        cp tailwind.config.ts deploy-package/ 2>/dev/null || true
+        cp postcss.config.mjs deploy-package/ 2>/dev/null || true
         
-        # Create startup script for Azure
-        cat > deploy-package/startup.sh << 'FRONTEND_EOF'
-        #!/bin/bash
-        echo "Starting Next.js application..."
-        cd /home/site/wwwroot
+        # Copy built files if they exist (for faster deployment)
+        cp -r .next deploy-package/ 2>/dev/null || true
         
-        # Install production dependencies only
-        echo "Installing production dependencies..."
-        npm ci --only=production
+        # Create server.js for Azure App Service
+        cat > deploy-package/server.js << 'SERVER_EOF'
+        const { createServer } = require('http');
+        const { parse } = require('url');
+        const next = require('next');
         
-        # Start the application
-        echo "Starting application on port \${PORT:-8080}..."
-        PORT=\${PORT:-8080} npm start
-        FRONTEND_EOF
+        const dev = process.env.NODE_ENV !== 'production';
+        const hostname = '0.0.0.0';
+        const port = process.env.PORT || 8080;
         
-        chmod +x deploy-package/startup.sh
+        const app = next({ dev, hostname, port });
+        const handle = app.getRequestHandler();
+        
+        app.prepare().then(() => {
+          createServer(async (req, res) => {
+            try {
+              const parsedUrl = parse(req.url, true);
+              await handle(req, res, parsedUrl);
+            } catch (err) {
+              console.error('Error occurred handling', req.url, err);
+              res.statusCode = 500;
+              res.end('internal server error');
+            }
+          }).listen(port, (err) => {
+            if (err) throw err;
+            console.log(\`> Ready on http://\${hostname}:\${port}\`);
+          });
+        });
+        SERVER_EOF
+        
+        # Create web.config for IIS
+        cat > deploy-package/web.config << 'WEBCONFIG_EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <system.webServer>
+            <handlers>
+              <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
+            </handlers>
+            <rewrite>
+              <rules>
+                <rule name="DynamicContent">
+                  <conditions>
+                    <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
+                  </conditions>
+                  <action type="Rewrite" url="server.js"/>
+                </rule>
+              </rules>
+            </rewrite>
+            <iisnode node_env="production" />
+          </system.webServer>
+        </configuration>
+        WEBCONFIG_EOF
         
         # Create a package.json for production if needed
         cd deploy-package
