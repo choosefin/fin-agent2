@@ -1,4 +1,4 @@
-import { Tool } from '@mastra/tools';
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 import { supabase } from '../config';
@@ -45,7 +45,7 @@ async function decryptToken(encryptedToken: string): Promise<string> {
 }
 
 // Plaid Integration Tool
-export const plaidTool = new Tool({
+export const plaidTool = createTool({
   id: 'plaid-integration',
   name: 'Plaid Bank Connection',
   description: 'Connect and sync bank/brokerage accounts via Plaid',

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ApiRouteConfig, Handlers } from '@motia/core';
-import { debateWorkflow } from '../src/mastra/workflows/debate';
+// Debate workflow temporarily disabled
+// import { debateWorkflow } from '../src/mastra/workflows/debate';
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -42,13 +43,15 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, emit, st
       }
     });
 
-    // Execute the debate workflow
-    const result = await debateWorkflow.execute({
-      query: req.body.message,
-      userId: req.body.userId,
-      assistantType: req.body.assistantType,
-      symbols: req.body.symbols,
-    });
+    // Debate workflow temporarily disabled - return a placeholder response
+    const result = {
+      output: {
+        response: "The debate workflow is temporarily disabled. This is a placeholder response.",
+        confidence: 0.5,
+        sources: [],
+        participants: []
+      }
+    };
 
     // Emit analysis completed event
     await emit({ 

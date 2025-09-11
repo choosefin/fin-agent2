@@ -19,13 +19,13 @@
     "financial-ai"
   ],
   "dependencies": {
+    "@alpacahq/alpaca-trade-api": "^3.0.0",
     "@azure/identity": "^4.0.0",
     "@azure/keyvault-secrets": "^4.8.0",
-    "@mastra/core": "^0.1.0",
-    "@mastra/memory": "^0.1.0",
-    "@mastra/tools": "^0.1.0",
+    "@mastra/core": "^0.16.2",
+    "@mastra/memory": "^0.15.0",
+    "@polygon.io/client-js": "^8.2.0",
     "@supabase/supabase-js": "^2.45.0",
-    "alpaca-trade-api": "^3.0.0",
     "dotenv": "^16.4.0",
     "fastify": "^4.28.0",
     "jsonwebtoken": "^9.0.2",
@@ -52,13 +52,23 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "roots": ["<rootDir>/tests", "<rootDir>/services"],
-    "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
+    "roots": [
+      "<rootDir>/tests",
+      "<rootDir>/services"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ],
     "collectCoverageFrom": [
       "services/**/*.ts",
       "!services/**/*.d.ts"
     ],
     "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov", "html"]
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
   }
 }

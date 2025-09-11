@@ -1,38 +1,27 @@
 import { Mastra } from '@mastra/core';
-import { Memory } from '@mastra/memory';
-import { createClient } from '@supabase/supabase-js';
 import { config as dotenvConfig } from 'dotenv';
 import { authService } from '../../services/auth.service';
 import { secretsService } from '../../services/secrets.service';
 
 dotenvConfig();
 
-// Initialize secrets service first
-await secretsService.initializeRequiredSecrets();
+// Initialize function to handle async initialization
+let initialized = false;
+async function initialize() {
+  if (!initialized) {
+    await secretsService.initializeRequiredSecrets();
+    initialized = true;
+  }
+}
+
+// Call initialization - will be awaited when needed
+initialize().catch(console.error);
 
 // Use auth service for Supabase client (uses ANON key for client operations)
 export const supabase = authService.getPublicClient();
 
-// Initialize Memory with mem0
-export const memory = new Memory({
-  provider: 'mem0',
-  config: {
-    apiKey: process.env.MEM0_API_KEY!,
-    endpoint: process.env.MEM0_ENDPOINT!,
-  },
-});
-
-// Initialize Mastra
-export const mastra = new Mastra({
-  memory,
-  logger: {
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  },
-  observability: {
-    enabled: true,
-    provider: 'azure-insights',
-  },
-});
+// Initialize Mastra - simplified configuration
+export const mastra = new Mastra({});
 
 // LLM Configuration
 export const llmConfig = {
@@ -91,7 +80,6 @@ Connect economic analysis to practical investment implications.`,
 // Export configuration
 export default {
   mastra,
-  memory,
   supabase,
   llmConfig,
   agentPrompts,

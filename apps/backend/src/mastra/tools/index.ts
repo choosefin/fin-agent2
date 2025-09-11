@@ -2,11 +2,11 @@
 export { marketDataTool } from './marketData';
 export { plaidTool } from './plaid';
 
-import { Tool } from '@mastra/tools';
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
 // Search Tool
-export const searchTool = new Tool({
+export const searchTool = createTool({
   id: 'parallel-search',
   name: 'Parallel Search',
   description: 'Search across multiple financial data sources in parallel',
@@ -30,7 +30,7 @@ export const searchTool = new Tool({
 });
 
 // Portfolio Analysis Tool
-export const portfolioAnalysisTool = new Tool({
+export const portfolioAnalysisTool = createTool({
   id: 'portfolio-analysis',
   name: 'Portfolio Analysis',
   description: 'Analyze portfolio performance and metrics',
@@ -52,7 +52,7 @@ export const portfolioAnalysisTool = new Tool({
 });
 
 // Technical Analysis Tool
-export const technicalAnalysisTool = new Tool({
+export const technicalAnalysisTool = createTool({
   id: 'technical-analysis',
   name: 'Technical Analysis',
   description: 'Perform technical analysis on securities',
@@ -70,7 +70,7 @@ export const technicalAnalysisTool = new Tool({
 });
 
 // Fundamental Analysis Tool
-export const fundamentalAnalysisTool = new Tool({
+export const fundamentalAnalysisTool = createTool({
   id: 'fundamental-analysis',
   name: 'Fundamental Analysis',
   description: 'Analyze company fundamentals',
@@ -88,7 +88,7 @@ export const fundamentalAnalysisTool = new Tool({
 });
 
 // Quantitative Analysis Tool
-export const quantAnalysisTool = new Tool({
+export const quantAnalysisTool = createTool({
   id: 'quant-analysis',
   name: 'Quantitative Analysis',
   description: 'Perform quantitative analysis and modeling',
@@ -106,7 +106,7 @@ export const quantAnalysisTool = new Tool({
 });
 
 // Technical Indicators Tool
-export const technicalIndicatorsTool = new Tool({
+export const technicalIndicatorsTool = createTool({
   id: 'technical-indicators',
   name: 'Technical Indicators',
   description: 'Calculate technical indicators',
@@ -124,7 +124,7 @@ export const technicalIndicatorsTool = new Tool({
 });
 
 // Order Flow Tool
-export const orderFlowTool = new Tool({
+export const orderFlowTool = createTool({
   id: 'order-flow',
   name: 'Order Flow Analysis',
   description: 'Analyze order flow and market microstructure',
@@ -141,7 +141,7 @@ export const orderFlowTool = new Tool({
 });
 
 // Alpaca Trading Tool
-export const alpacaTradingTool = new Tool({
+export const alpacaTradingTool = createTool({
   id: 'alpaca-trading',
   name: 'Alpaca Trading',
   description: 'Execute trades via Alpaca',
@@ -164,7 +164,7 @@ export const alpacaTradingTool = new Tool({
 });
 
 // Risk Management Tool
-export const riskManagementTool = new Tool({
+export const riskManagementTool = createTool({
   id: 'risk-management',
   name: 'Risk Management',
   description: 'Calculate position sizing and risk metrics',
@@ -182,7 +182,7 @@ export const riskManagementTool = new Tool({
 });
 
 // Portfolio Optimization Tool
-export const portfolioOptimizationTool = new Tool({
+export const portfolioOptimizationTool = createTool({
   id: 'portfolio-optimization',
   name: 'Portfolio Optimization',
   description: 'Optimize portfolio allocation',
@@ -198,7 +198,7 @@ export const portfolioOptimizationTool = new Tool({
 });
 
 // Asset Allocation Tool
-export const assetAllocationTool = new Tool({
+export const assetAllocationTool = createTool({
   id: 'asset-allocation',
   name: 'Asset Allocation',
   description: 'Determine optimal asset allocation',
@@ -215,7 +215,7 @@ export const assetAllocationTool = new Tool({
 });
 
 // Retirement Planning Tool
-export const retirementPlanningTool = new Tool({
+export const retirementPlanningTool = createTool({
   id: 'retirement-planning',
   name: 'Retirement Planning',
   description: 'Create retirement savings plan',
@@ -235,7 +235,7 @@ export const retirementPlanningTool = new Tool({
 });
 
 // Tax Optimization Tool
-export const taxOptimizationTool = new Tool({
+export const taxOptimizationTool = createTool({
   id: 'tax-optimization',
   name: 'Tax Optimization',
   description: 'Optimize for tax efficiency',
@@ -251,7 +251,7 @@ export const taxOptimizationTool = new Tool({
 });
 
 // Risk Assessment Tool
-export const riskAssessmentTool = new Tool({
+export const riskAssessmentTool = createTool({
   id: 'risk-assessment',
   name: 'Risk Assessment',
   description: 'Assess portfolio risk',
@@ -269,7 +269,7 @@ export const riskAssessmentTool = new Tool({
 });
 
 // Hedging Tool
-export const hedgingTool = new Tool({
+export const hedgingTool = createTool({
   id: 'hedging',
   name: 'Hedging Strategies',
   description: 'Generate hedging strategies',
@@ -285,7 +285,7 @@ export const hedgingTool = new Tool({
 });
 
 // Stress Testing Tool
-export const stressTestingTool = new Tool({
+export const stressTestingTool = createTool({
   id: 'stress-testing',
   name: 'Stress Testing',
   description: 'Run portfolio stress tests',
@@ -301,7 +301,7 @@ export const stressTestingTool = new Tool({
 });
 
 // Volatility Analysis Tool
-export const volatilityAnalysisTool = new Tool({
+export const volatilityAnalysisTool = createTool({
   id: 'volatility-analysis',
   name: 'Volatility Analysis',
   description: 'Analyze volatility patterns',
@@ -318,7 +318,7 @@ export const volatilityAnalysisTool = new Tool({
 });
 
 // Correlation Analysis Tool
-export const correlationAnalysisTool = new Tool({
+export const correlationAnalysisTool = createTool({
   id: 'correlation-analysis',
   name: 'Correlation Analysis',
   description: 'Analyze asset correlations',
@@ -334,7 +334,7 @@ export const correlationAnalysisTool = new Tool({
 });
 
 // Economic Data Tool
-export const economicDataTool = new Tool({
+export const economicDataTool = createTool({
   id: 'economic-data',
   name: 'Economic Data',
   description: 'Fetch economic indicators',
@@ -350,7 +350,7 @@ export const economicDataTool = new Tool({
 });
 
 // Sector Analysis Tool
-export const sectorAnalysisTool = new Tool({
+export const sectorAnalysisTool = createTool({
   id: 'sector-analysis',
   name: 'Sector Analysis',
   description: 'Analyze sector performance',
@@ -366,7 +366,7 @@ export const sectorAnalysisTool = new Tool({
 });
 
 // Policy Analysis Tool
-export const policyAnalysisTool = new Tool({
+export const policyAnalysisTool = createTool({
   id: 'policy-analysis',
   name: 'Policy Analysis',
   description: 'Analyze policy impacts',
@@ -382,7 +382,7 @@ export const policyAnalysisTool = new Tool({
 });
 
 // Market Cycle Tool
-export const marketCycleTool = new Tool({
+export const marketCycleTool = createTool({
   id: 'market-cycle',
   name: 'Market Cycle Analysis',
   description: 'Identify market cycles',

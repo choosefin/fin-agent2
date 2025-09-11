@@ -14,7 +14,11 @@ declare module 'motia' {
   interface Handlers {
     'StateAuditJob': CronHandler<{ topic: 'notification'; data: { templateId: string; email: string; templateData: Record<string, unknown> } }>
     'ProcessFoodOrder': EventHandler<{ email: string; quantity: number; petId: number }, { topic: 'notification'; data: { templateId: string; email: string; templateData: Record<string, unknown> } }>
+    'CreatePlaidLinkToken': ApiRouteHandler<{ userId: string }, unknown, never>
+    'ExchangePlaidToken': ApiRouteHandler<{ publicToken: string; userId: string; institution?: unknown; accounts?: unknown[] }, unknown, never>
     'Notification': EventHandler<{ templateId: string; email: string; templateData: Record<string, unknown> }, never>
+    'GetMarketData': ApiRouteHandler<{ symbol: string; dataType: 'quote' | 'historical' | 'options' | 'sentiment' | 'news'; timeframe?: string; startDate?: string; endDate?: string }, unknown, never>
+    'ChatWithAgent': ApiRouteHandler<{ message: string; assistantType: 'general' | 'analyst' | 'trader' | 'advisor' | 'riskManager' | 'economist'; userId: string; symbols?: string[] }, unknown, never>
     'ApiTrigger': ApiRouteHandler<{ pet: { name: string; photoUrl: string }; foodOrder?: { id: string; quantity: number } }, ApiResponse<200, { id: number; name: string; photoUrl: string }>, { topic: 'process-food-order'; data: { email: string; quantity: number; petId: number } }>
   }
 }

@@ -1,9 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { z } from 'zod';
 
-// JWT validation schema
+// JWT validation schema (unused currently but kept for future JWT validation)
 const jwtPayloadSchema = z.object({
   sub: z.string(), // user id
   email: z.string().email().optional(),
@@ -14,8 +13,8 @@ const jwtPayloadSchema = z.object({
 });
 
 export class AuthService {
-  private supabaseClient: SupabaseClient;
-  private supabaseAdminClient: SupabaseClient;
+  private supabaseClient: SupabaseClient | null = null;
+  private supabaseAdminClient: SupabaseClient | null = null;
   private allowedAdminIPs: Set<string>;
   private adminAccessLog: Map<string, { count: number; lastAccess: Date }>;
   
@@ -25,18 +24,42 @@ export class AuthService {
       process.env.ADMIN_ALLOWED_IPS?.split(',').map(ip => ip.trim()) || []
     );
     this.adminAccessLog = new Map();
-    // Public client for user operations (using anon key)
-    this.supabaseClient = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!
-    );
+    
+    // Only initialize Supabase clients if environment variables are present
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    
+    if (supabaseUrl && supabaseAnonKey) {
+      // Public client for user operations (using anon key)
+      this.supabaseClient = createClient(
+        supabaseUrl,
+        supabaseAnonKey
+      );
+    }
 
-    // Admin client for service operations (using service key)
-    // This should only be used for specific admin operations
-    this.supabaseAdminClient = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_KEY!
-    );
+    if (supabaseUrl && supabaseServiceKey) {
+      // Admin client for service operations (using service key)
+      // This should only be used for specific admin operations
+      this.supabaseAdminClient = createClient(
+        supabaseUrl,
+        supabaseServiceKey
+      );
+    }
+  }
+  
+  private ensureSupabaseClient(): SupabaseClient {
+    if (!this.supabaseClient) {
+      throw new Error('Supabase client not initialized. Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set.');
+    }
+    return this.supabaseClient;
+  }
+  
+  private ensureSupabaseAdminClient(): SupabaseClient {
+    if (!this.supabaseAdminClient) {
+      throw new Error('Supabase admin client not initialized. Please ensure SUPABASE_URL and SUPABASE_SERVICE_KEY are set.');
+    }
+    return this.supabaseAdminClient;
   }
 
   /**
@@ -45,7 +68,7 @@ export class AuthService {
   async verifyToken(token: string): Promise<{ userId: string; email?: string; role?: string }> {
     try {
       // Verify JWT with Supabase
-      const { data: { user }, error } = await this.supabaseClient.auth.getUser(token);
+      const { data: { user }, error } = await this.ensureSupabaseClient().auth.getUser(token);
       
       if (error || !user) {
         throw new Error('Invalid token');
@@ -355,7 +378,7 @@ export class AuthService {
     if (context) {
       await this.validateAdminAccess(context.userId, 'CREATE_USER', context.ip);
     }
-    const { data, error } = await this.supabaseAdminClient.auth.admin.createUser({
+    const { data, error } = await this.ensureSupabaseAdminClient().auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -384,7 +407,7 @@ export class AuthService {
       await this.validateAdminAccess(context.userId, 'UPDATE_USER', context.ip);
     }
     
-    const { data, error } = await this.supabaseAdminClient.auth.admin.updateUserById(
+    const { data, error } = await this.ensureSupabaseAdminClient().auth.admin.updateUserById(
       userId,
       {
         email: updates.email,
@@ -414,7 +437,7 @@ export class AuthService {
       await this.validateAdminAccess(context.userId, 'DELETE_USER', context.ip);
     }
     
-    const { error } = await this.supabaseAdminClient.auth.admin.deleteUser(userId);
+    const { error } = await this.ensureSupabaseAdminClient().auth.admin.deleteUser(userId);
 
     if (error) {
       throw new Error(`Failed to delete user: ${error.message}`);
@@ -437,7 +460,7 @@ export class AuthService {
       await this.validateAdminAccess(context.userId, 'LIST_USERS', context.ip);
     }
     
-    const { data, error } = await this.supabaseAdminClient.auth.admin.listUsers({
+    const { data, error } = await this.ensureSupabaseAdminClient().auth.admin.listUsers({
       page,
       perPage,
     });
@@ -466,7 +489,7 @@ export class AuthService {
       await this.validateAdminAccess(context.userId, 'GRANT_PERMISSION', context.ip);
     }
     
-    const { error } = await this.supabaseAdminClient
+    const { error } = await this.ensureSupabaseAdminClient()
       .from('user_permissions')
       .insert({
         user_id: userId,
@@ -499,7 +522,7 @@ export class AuthService {
       await this.validateAdminAccess(context.userId, 'REVOKE_PERMISSION', context.ip);
     }
     
-    const { error } = await this.supabaseAdminClient
+    const { error } = await this.ensureSupabaseAdminClient()
       .from('user_permissions')
       .delete()
       .eq('user_id', userId)
