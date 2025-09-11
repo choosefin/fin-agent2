@@ -2,14 +2,16 @@ import { Mastra } from '@mastra/core';
 import { Memory } from '@mastra/memory';
 import { createClient } from '@supabase/supabase-js';
 import { config as dotenvConfig } from 'dotenv';
+import { authService } from '../../services/auth.service';
+import { secretsService } from '../../services/secrets.service';
 
 dotenvConfig();
 
-// Initialize Supabase client
-export const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+// Initialize secrets service first
+await secretsService.initializeRequiredSecrets();
+
+// Use auth service for Supabase client (uses ANON key for client operations)
+export const supabase = authService.getPublicClient();
 
 // Initialize Memory with mem0
 export const memory = new Memory({

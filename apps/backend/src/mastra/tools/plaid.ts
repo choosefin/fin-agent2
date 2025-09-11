@@ -2,50 +2,46 @@ import { Tool } from '@mastra/tools';
 import { z } from 'zod';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 import { supabase } from '../config';
-import crypto from 'crypto';
+import { encryptionService } from '../../../services/encryption.service';
+import { secretsService } from '../../../services/secrets.service';
+import { authService } from '../../../services/auth.service';
 
-// Initialize Plaid client
-const configuration = new Configuration({
-  basePath: PlaidEnvironments[process.env.PLAID_ENV as keyof typeof PlaidEnvironments],
-  baseOptions: {
-    headers: {
-      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-      'PLAID-SECRET': process.env.PLAID_SECRET,
+// Initialize Plaid client with secure secret management
+let plaidClient: PlaidApi;
+
+async function initializePlaidClient() {
+  const plaidSecret = await secretsService.getSecret('PLAID_SECRET');
+  const plaidClientId = process.env.PLAID_CLIENT_ID;
+  
+  if (!plaidSecret || !plaidClientId) {
+    throw new Error('Plaid credentials not configured');
+  }
+  
+  const configuration = new Configuration({
+    basePath: PlaidEnvironments[process.env.PLAID_ENV as keyof typeof PlaidEnvironments],
+    baseOptions: {
+      headers: {
+        'PLAID-CLIENT-ID': plaidClientId,
+        'PLAID-SECRET': plaidSecret,
+      },
     },
-  },
-});
-
-const plaidClient = new PlaidApi(configuration);
-
-// Encryption helpers
-const algorithm = 'aes-256-gcm';
-const secretKey = crypto.scryptSync(process.env.PLAID_SECRET!, 'salt', 32);
-
-function encryptToken(token: string): string {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+  });
   
-  let encrypted = cipher.update(token, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  
-  const authTag = cipher.getAuthTag();
-  
-  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+  plaidClient = new PlaidApi(configuration);
 }
 
-function decryptToken(encryptedToken: string): string {
-  const parts = encryptedToken.split(':');
-  const iv = Buffer.from(parts[0], 'hex');
-  const authTag = Buffer.from(parts[1], 'hex');
-  const encrypted = parts[2];
-  
-  const decipher = crypto.createDecipheriv(algorithm, secretKey, iv);
-  decipher.setAuthTag(authTag);
-  
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  
-  return decrypted;
+// Initialize on first use
+initializePlaidClient().catch(console.error);
+
+// Token encryption helpers using the secure encryption service
+async function encryptToken(token: string): Promise<string> {
+  const encryptedData = await encryptionService.encrypt(token);
+  return JSON.stringify(encryptedData);
+}
+
+async function decryptToken(encryptedToken: string): Promise<string> {
+  const encryptedData = JSON.parse(encryptedToken);
+  return await encryptionService.decrypt(encryptedData);
 }
 
 // Plaid Integration Tool
@@ -105,7 +101,7 @@ export const plaidTool = new Tool({
           public_token: publicToken,
         });
         
-        const encryptedToken = encryptToken(exchangeResponse.data.access_token);
+        const encryptedToken = await encryptToken(exchangeResponse.data.access_token);
         
         // Store encrypted token in database
         const { error: insertError } = await supabase
@@ -137,7 +133,7 @@ export const plaidTool = new Tool({
             throw new Error('No active Plaid items found');
           }
           
-          accessToken = decryptToken(items[0].access_token_encrypted);
+          accessToken = await decryptToken(items[0].access_token_encrypted);
         }
         
         // Sync accounts
@@ -186,7 +182,7 @@ export const plaidTool = new Tool({
             .single();
           
           if (!items) throw new Error('No active Plaid item found');
-          accessToken = decryptToken(items.access_token_encrypted);
+          accessToken = await decryptToken(items.access_token_encrypted);
         }
         
         const transactionsResponse = await plaidClient.transactionsGet({
@@ -226,7 +222,7 @@ export const plaidTool = new Tool({
             .single();
           
           if (!items) throw new Error('No active Plaid item found');
-          accessToken = decryptToken(items.access_token_encrypted);
+          accessToken = await decryptToken(items.access_token_encrypted);
         }
         
         const holdingsResponse = await plaidClient.investmentsHoldingsGet({
@@ -271,7 +267,7 @@ export const plaidTool = new Tool({
         const refreshResults = [];
         
         for (const item of items) {
-          const token = decryptToken(item.access_token_encrypted);
+          const token = await decryptToken(item.access_token_encrypted);
           
           // Refresh accounts
           const accountsRes = await plaidClient.accountsBalanceGet({
