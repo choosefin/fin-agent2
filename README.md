@@ -300,4 +300,4 @@ az deployment group create \
 
 ## License
 
-MIT
+Source Available - See [LICENSE.md](LICENSE.md) for details
