@@ -163,20 +163,20 @@ EOF
         cd apps/web
         # Create startup script for Azure
         cat > startup.sh << 'EOF'
-        #!/bin/bash
-        echo "Starting Next.js application..."
-        cd /home/site/wwwroot
-        
-        # Install dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing dependencies..."
-            npm install --production
-        fi
-        
-        # Start the application
-        echo "Starting application on port 8080..."
-        PORT=8080 npm start
-        EOF
+#!/bin/bash
+echo "Starting Next.js application..."
+cd /home/site/wwwroot
+
+# Install dependencies if needed
+if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies..."
+    npm install --production
+fi
+
+# Start the application
+echo "Starting application on port 8080..."
+PORT=8080 npm start
+EOF
         
         chmod +x startup.sh
         
