@@ -1,4 +1,8 @@
 import Groq from 'groq-sdk';
+import { config as dotenvConfig } from 'dotenv';
+
+// Load environment variables
+dotenvConfig({ path: '.env.local' });
 
 /**
  * Groq Service Wrapper for ultra-fast Llama inference
@@ -41,8 +45,8 @@ export class GroqService {
     }
     
     try {
-      // Use Llama 3 70B for complex financial analysis, 8B for fast responses
-      const model = params.model || 'llama3-70b-8192'; // Default to 70B for better quality
+      // Use Llama 3.3 70B for complex financial analysis, Llama 3.1 8B for fast responses
+      const model = params.model || 'llama-3.3-70b-versatile'; // Latest Llama 3.3 70B model
       
       const response = await this.client!.chat.completions.create({
         messages: params.messages,
@@ -62,7 +66,7 @@ export class GroqService {
         try {
           const response = await this.client!.chat.completions.create({
             messages: params.messages,
-            model: 'llama3-8b-8192', // Fallback to smaller, faster model
+            model: 'llama-3.1-8b-instant', // Fallback to smaller, faster model
             temperature: params.temperature ?? 0.7,
             max_tokens: params.max_tokens ?? 1000,
             stream: params.stream ?? false,
@@ -92,7 +96,7 @@ export class GroqService {
     
     const stream = await this.client!.chat.completions.create({
       messages: params.messages,
-      model: params.model || 'llama3-70b-8192',
+      model: params.model || 'llama-3.3-70b-versatile',
       temperature: params.temperature ?? 0.7,
       max_tokens: params.max_tokens ?? 1000,
       stream: true,
@@ -121,23 +125,30 @@ export class GroqService {
       maxTokens: 8192,
       models: [
         {
-          id: 'llama3-70b-8192',
-          name: 'Llama 3 70B',
-          description: 'Best quality for complex financial analysis',
-          contextWindow: 8192,
+          id: 'llama-3.3-70b-versatile',
+          name: 'Llama 3.3 70B Versatile',
+          description: 'Latest and best quality for complex financial analysis',
+          contextWindow: 32768,
           recommended: true,
         },
         {
-          id: 'llama3-8b-8192', 
-          name: 'Llama 3 8B',
+          id: 'llama-3.1-70b-versatile',
+          name: 'Llama 3.1 70B',
+          description: 'Previous gen 70B model with excellent quality',
+          contextWindow: 131072,
+          recommended: false,
+        },
+        {
+          id: 'llama-3.1-8b-instant', 
+          name: 'Llama 3.1 8B Instant',
           description: 'Fastest responses for simple queries',
-          contextWindow: 8192,
+          contextWindow: 131072,
           recommended: false,
         },
         {
           id: 'mixtral-8x7b-32768',
           name: 'Mixtral 8x7B',
-          description: 'Large context window for document analysis',
+          description: 'Alternative model for varied tasks',
           contextWindow: 32768,
           recommended: false,
         },

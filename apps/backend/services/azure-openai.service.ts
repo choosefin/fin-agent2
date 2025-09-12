@@ -3,6 +3,10 @@ import type {
   ChatCompletionCreateParams,
   ChatCompletion 
 } from 'openai/resources/chat/completions';
+import { config as dotenvConfig } from 'dotenv';
+
+// Load environment variables
+dotenvConfig({ path: '.env.local' });
 
 /**
  * Azure OpenAI Service Wrapper

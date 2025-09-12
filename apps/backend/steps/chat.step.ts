@@ -50,7 +50,7 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
             { role: 'system', content: systemPrompt },
             { role: 'user', content: req.body.message }
           ],
-          model: 'llama3-70b-8192', // Use 70B for quality
+          model: 'llama-3.3-70b-versatile', // Use latest Llama 3.3 70B
           temperature: 0.7,
           max_tokens: 1500,
         });
@@ -61,7 +61,7 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
         } else {
           response = 'Streaming response not supported in this context';
         }
-        llmProvider = 'groq-llama3-70b';
+        llmProvider = 'groq-llama-3.3-70b';
         logger.info('Groq response received successfully', { llmProvider });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
