@@ -1,0 +1,44 @@
+name: Fetch Azure Logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch-logs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Fetch Application Logs
+      run: |
+        echo "=== Fetching Frontend Application Logs ==="
+        
+        # Get recent logs
+        az webapp log tail \
+          --name finagent-web-pps457j4wjrc6 \
+          --resource-group finagent-rg \
+          --lines 100 || echo "Failed to fetch logs"
+        
+        echo ""
+        echo "=== Fetching Deployment Logs ==="
+        az webapp log deployment show \
+          --name finagent-web-pps457j4wjrc6 \
+          --resource-group finagent-rg \
+          --deployment-id latest || echo "Failed to fetch deployment logs"
+        
+        echo ""
+        echo "=== App Service Configuration ==="
+        az webapp config show \
+          --name finagent-web-pps457j4wjrc6 \
+          --resource-group finagent-rg || echo "Failed to fetch config"
+        
+        echo ""
+        echo "=== App Settings (redacted) ==="
+        az webapp config appsettings list \
+          --name finagent-web-pps457j4wjrc6 \
+          --resource-group finagent-rg \
+          --query "[].{name:name, value:value}" \
+          --output table | sed 's/\(KEY.*\)[^ ]*/\1[REDACTED]/' || echo "Failed to fetch settings"
