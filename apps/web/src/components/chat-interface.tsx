@@ -88,6 +88,7 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         message,
         assistantType: assistant.id,

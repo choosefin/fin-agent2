@@ -97,6 +97,12 @@ finagent2/
 - **Supabase Database**: PostgreSQL with row-level security for user data
 - **Redis Caching**: High-performance caching for market data and API responses
 
+### 🔐 Authentication & Security
+- **Supabase Auth**: Secure user authentication with email/password
+- **Protected Routes**: Login required for chat and financial features
+- **Session Management**: Automatic session refresh and persistence
+- **User Data Isolation**: Row-level security in Supabase
+
 ### 🏗️ Technical Architecture
 - **Event-Driven Backend**: Motia v0.6.4 orchestration with API, Event, and Cron steps
 - **Security First**: JWT authentication, rate limiting, input sanitization, encryption
@@ -164,15 +170,23 @@ pnpm install
 3. Set up environment variables
 ```bash
 cp apps/backend/.env.example apps/backend/.env
-cp apps/web/.env.example apps/web/.env
+cp apps/web/.env.local.example apps/web/.env.local
 ```
 
 Edit the `.env` files with your API keys:
+
+**Backend (`apps/backend/.env`):**
 - Azure OpenAI credentials
 - Plaid API keys
 - Supabase connection string
 - Redis connection (optional for local dev)
 - Market data API keys (Yahoo Finance, Polygon.io, Alpaca)
+
+**Frontend (`apps/web/.env.local`):**
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anon key
+
+Get Supabase credentials from: https://app.supabase.com/project/_/settings/api
 
 ### Development
 

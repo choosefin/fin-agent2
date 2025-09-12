@@ -1,16 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AssistantSelector, assistantProfiles, AssistantProfile } from '@/components/assistant-selector';
 import { ChatInterface } from '@/components/chat-interface';
 import { PlaidConnect } from '@/components/plaid-connect';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, Menu, X, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import { AuthForm } from '@/components/auth-form';
 
 export default function HomePage() {
   const [selectedAssistant, setSelectedAssistant] = useState<AssistantProfile>(assistantProfiles[0]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showPlaidConnect, setShowPlaidConnect] = useState(false);
+  const { user, loading, signOut } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <AuthForm />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -21,6 +43,12 @@ export default function HomePage() {
           <div className="flex items-center gap-2 mb-8">
             <TrendingUp className="h-8 w-8 text-blue-500" />
             <h1 className="text-xl font-bold">Fin Agent</h1>
+          </div>
+
+          {/* User Info */}
+          <div className="mb-6 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Signed in as</p>
+            <p className="text-sm font-medium truncate">{user.email}</p>
           </div>
 
           {/* Assistant Selector */}
@@ -87,7 +115,11 @@ export default function HomePage() {
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => signOut()}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </Button>
