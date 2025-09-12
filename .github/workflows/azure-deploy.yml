@@ -35,32 +35,23 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 9
-        run_install: false
-
-    - name: Get pnpm store directory
-      shell: bash
-      run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-    - name: Setup pnpm cache
+    - name: Setup npm cache
       uses: actions/cache@v3
       with:
-        path: ${{ env.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-pnpm-store-
+          ${{ runner.os }}-npm-
 
     - name: Install dependencies
       run: |
-        pnpm install --frozen-lockfile --filter=backend... || pnpm install --no-frozen-lockfile --filter=backend...
+        cd apps/backend
+        npm ci || npm install
 
     - name: Build backend
       run: |
-        pnpm run build --filter=backend || echo "Build script not found, skipping build"
+        cd apps/backend
+        npm run build || echo "Build script not found, skipping build"
 
     - name: Create deployment package
       run: |
@@ -193,34 +184,24 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 9
-        run_install: false
-
-    - name: Get pnpm store directory
-      shell: bash
-      run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-    - name: Setup pnpm cache
+    - name: Setup npm cache
       uses: actions/cache@v3
       with:
-        path: ${{ env.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-pnpm-store-
+          ${{ runner.os }}-npm-
 
     - name: Install dependencies
       run: |
-        pnpm install --frozen-lockfile --filter=web... || pnpm install --no-frozen-lockfile --filter=web...
+        cd apps/web
+        npm ci || npm install
 
     - name: Build frontend
       run: |
         cd apps/web
         # Build Next.js in standalone mode
-        pnpm build
+        npm run build
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fuaogvgmdgndldimnnrs.supabase.co' }}
@@ -243,56 +224,10 @@ jobs:
             cp -r .next/standalone/apps/web/* deploy-package/
             cp -r .next/standalone/apps/web/.next deploy-package/ 2>/dev/null || true
             
-            # CRITICAL: Copy node_modules from standalone root
+            # Copy node_modules from standalone root (npm creates flat structure)
             if [ -d ".next/standalone/node_modules" ]; then
               echo "Copying standalone node_modules..."
-              # First copy everything including pnpm structure
               cp -r .next/standalone/node_modules deploy-package/
-              
-              # Check if we have pnpm structure that needs fixing
-              if [ -d "deploy-package/node_modules/.pnpm" ]; then
-                echo "Detected pnpm structure, converting to flat node_modules for Azure..."
-                
-                # Remove all existing symlinks first
-                find deploy-package/node_modules -maxdepth 1 -type l -delete
-                
-                # Copy ALL packages from .pnpm structure to root node_modules
-                # This ensures all dependencies are available, not just the main ones
-                for pnpm_pkg in deploy-package/node_modules/.pnpm/*/node_modules/*; do
-                  if [ -d "$pnpm_pkg" ]; then
-                    pkg_name=$(basename "$pnpm_pkg")
-                    target="deploy-package/node_modules/$pkg_name"
-                    
-                    # Skip if already exists (first occurrence wins)
-                    if [ ! -e "$target" ]; then
-                      echo "Copying $pkg_name from pnpm structure..."
-                      cp -r "$pnpm_pkg" "$target"
-                    fi
-                  fi
-                done
-                
-                # Special handling for scoped packages (@org/package)
-                for scope_dir in deploy-package/node_modules/.pnpm/*/node_modules/@*; do
-                  if [ -d "$scope_dir" ]; then
-                    scope_name=$(basename "$scope_dir")
-                    mkdir -p "deploy-package/node_modules/$scope_name"
-                    
-                    for scoped_pkg in "$scope_dir"/*; do
-                      if [ -d "$scoped_pkg" ]; then
-                        pkg_name=$(basename "$scoped_pkg")
-                        target="deploy-package/node_modules/$scope_name/$pkg_name"
-                        
-                        if [ ! -e "$target" ]; then
-                          echo "Copying $scope_name/$pkg_name from pnpm structure..."
-                          cp -r "$scoped_pkg" "$target"
-                        fi
-                      fi
-                    done
-                  fi
-                done
-                
-                echo "Finished converting pnpm structure to flat node_modules"
-              fi
             fi
           else
             echo "Standard structure"
