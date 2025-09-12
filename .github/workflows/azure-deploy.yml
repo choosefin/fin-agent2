@@ -250,29 +250,48 @@ jobs:
               cp -r .next/standalone/node_modules deploy-package/
               
               # Check if we have pnpm structure that needs fixing
-              if [ -d "deploy-package/node_modules/.pnpm" ] && [ ! -d "deploy-package/node_modules/next" ]; then
-                echo "Detected pnpm structure, fixing for Azure..."
+              if [ -d "deploy-package/node_modules/.pnpm" ]; then
+                echo "Detected pnpm structure, converting to flat node_modules for Azure..."
                 
-                # Find and copy critical packages from pnpm structure
-                for pkg in next react react-dom; do
-                  target="deploy-package/node_modules/$pkg"
-                  # Remove existing symlink or file if it exists
-                  if [ -e "$target" ] || [ -L "$target" ]; then
-                    echo "Removing existing $target..."
-                    rm -rf "$target"
-                  fi
-                  
-                  echo "Looking for $pkg in pnpm structure..."
-                  # Find the package in .pnpm directory
-                  pnpm_pkg=$(find deploy-package/node_modules/.pnpm -maxdepth 1 -type d -name "$pkg@*" | head -1)
-                  if [ -n "$pnpm_pkg" ]; then
-                    src="$pnpm_pkg/node_modules/$pkg"
-                    if [ -d "$src" ]; then
-                      echo "Copying $pkg to node_modules root..."
-                      cp -r "$src" "$target"
+                # Remove all existing symlinks first
+                find deploy-package/node_modules -maxdepth 1 -type l -delete
+                
+                # Copy ALL packages from .pnpm structure to root node_modules
+                # This ensures all dependencies are available, not just the main ones
+                for pnpm_pkg in deploy-package/node_modules/.pnpm/*/node_modules/*; do
+                  if [ -d "$pnpm_pkg" ]; then
+                    pkg_name=$(basename "$pnpm_pkg")
+                    target="deploy-package/node_modules/$pkg_name"
+                    
+                    # Skip if already exists (first occurrence wins)
+                    if [ ! -e "$target" ]; then
+                      echo "Copying $pkg_name from pnpm structure..."
+                      cp -r "$pnpm_pkg" "$target"
                     fi
                   fi
                 done
+                
+                # Special handling for scoped packages (@org/package)
+                for scope_dir in deploy-package/node_modules/.pnpm/*/node_modules/@*; do
+                  if [ -d "$scope_dir" ]; then
+                    scope_name=$(basename "$scope_dir")
+                    mkdir -p "deploy-package/node_modules/$scope_name"
+                    
+                    for scoped_pkg in "$scope_dir"/*; do
+                      if [ -d "$scoped_pkg" ]; then
+                        pkg_name=$(basename "$scoped_pkg")
+                        target="deploy-package/node_modules/$scope_name/$pkg_name"
+                        
+                        if [ ! -e "$target" ]; then
+                          echo "Copying $scope_name/$pkg_name from pnpm structure..."
+                          cp -r "$scoped_pkg" "$target"
+                        fi
+                      fi
+                    done
+                  fi
+                done
+                
+                echo "Finished converting pnpm structure to flat node_modules"
               fi
             fi
           else
