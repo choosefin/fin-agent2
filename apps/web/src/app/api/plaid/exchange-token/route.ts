@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (responseText) {
       try {
         data = JSON.parse(responseText);
-      } catch (e) {
+      } catch {
         console.error('Failed to parse response:', responseText);
         return NextResponse.json(
           { error: 'Invalid response from backend' },
