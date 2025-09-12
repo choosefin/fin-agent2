@@ -16,18 +16,36 @@ jobs:
       run: |
         echo "=== Fetching Frontend Application Logs ==="
         
-        # Get recent logs
-        az webapp log tail \
+        # Enable logging first
+        az webapp log config \
           --name finagent-web-pps457j4wjrc6 \
           --resource-group finagent-rg \
-          --lines 100 || echo "Failed to fetch logs"
+          --application-logging filesystem \
+          --level verbose || echo "Failed to enable logging"
+        
+        # Download logs
+        echo ""
+        echo "=== Downloading Recent Logs ==="
+        az webapp log download \
+          --name finagent-web-pps457j4wjrc6 \
+          --resource-group finagent-rg \
+          --log-file logs.zip || echo "Failed to download logs"
+        
+        # Extract and display
+        if [ -f logs.zip ]; then
+          unzip -q logs.zip
+          echo "=== Application Logs ==="
+          find . -name "*.txt" -o -name "*.log" | while read file; do
+            echo "--- $file ---"
+            tail -100 "$file" 2>/dev/null || cat "$file" 2>/dev/null
+          done
+        fi
         
         echo ""
-        echo "=== Fetching Deployment Logs ==="
-        az webapp log deployment show \
+        echo "=== Streaming Current Logs (30 seconds) ==="
+        timeout 30 az webapp log tail \
           --name finagent-web-pps457j4wjrc6 \
-          --resource-group finagent-rg \
-          --deployment-id latest || echo "Failed to fetch deployment logs"
+          --resource-group finagent-rg || echo "Log streaming completed"
         
         echo ""
         echo "=== App Service Configuration ==="
