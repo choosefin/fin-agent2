@@ -121,8 +121,13 @@ jobs:
           --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
           --resource-group "$RESOURCE_GROUP" \
           --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-                    WEBSITE_RUN_FROM_PACKAGE=0 \
                     ENABLE_ORYX_BUILD=false || true
+        
+        # Remove WEBSITE_RUN_FROM_PACKAGE if it exists
+        az webapp config appsettings delete \
+          --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --setting-names WEBSITE_RUN_FROM_PACKAGE 2>/dev/null || true
         
         # Stop and restart to clear any locks
         az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
@@ -337,8 +342,13 @@ jobs:
           --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
           --resource-group "$RESOURCE_GROUP" \
           --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-                    WEBSITE_RUN_FROM_PACKAGE=0 \
                     ENABLE_ORYX_BUILD=false || true
+        
+        # Remove WEBSITE_RUN_FROM_PACKAGE if it exists
+        az webapp config appsettings delete \
+          --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --setting-names WEBSITE_RUN_FROM_PACKAGE 2>/dev/null || true
         
         # Stop and restart to clear any locks
         az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
