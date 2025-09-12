@@ -246,11 +246,47 @@ jobs:
             # CRITICAL: Copy node_modules from standalone root
             if [ -d ".next/standalone/node_modules" ]; then
               echo "Copying standalone node_modules..."
+              # First copy everything including pnpm structure
               cp -r .next/standalone/node_modules deploy-package/
+              
+              # Check if we have pnpm structure that needs fixing
+              if [ -d "deploy-package/node_modules/.pnpm" ] && [ ! -d "deploy-package/node_modules/next" ]; then
+                echo "Detected pnpm structure, creating proper node_modules layout..."
+                cd deploy-package
+                
+                # Use Node.js to create a proper node_modules structure
+                cat > fix-modules.js << 'EOF'
+const fs = require('fs');
+const path = require('path');
+
+// Find and copy critical packages from .pnpm to root
+const packages = ['next', 'react', 'react-dom'];
+const pnpmDir = path.join('node_modules', '.pnpm');
+
+packages.forEach(pkg => {
+  const targetPath = path.join('node_modules', pkg);
+  if (!fs.existsSync(targetPath)) {
+    // Find the package in .pnpm
+    const dirs = fs.readdirSync(pnpmDir);
+    const pkgDir = dirs.find(d => d.startsWith(pkg + '@'));
+    if (pkgDir) {
+      const sourcePath = path.join(pnpmDir, pkgDir, 'node_modules', pkg);
+      if (fs.existsSync(sourcePath)) {
+        console.log(`Copying ${pkg} from pnpm structure...`);
+        fs.cpSync(sourcePath, targetPath, { recursive: true });
+      }
+    }
+  }
+});
+EOF
+                node fix-modules.js || echo "Failed to fix modules structure"
+                rm -f fix-modules.js
+                cd ..
+              fi
             fi
           else
             echo "Standard structure"
-            cp -r .next/standalone/* deploy-package/
+            cp -rL .next/standalone/* deploy-package/
           fi
           
           # Copy static files separately (not included in standalone)
