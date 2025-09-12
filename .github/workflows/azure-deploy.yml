@@ -221,61 +221,82 @@ jobs:
       run: |
         cd apps/web
         
-        # Create deployment package with pre-built app
-        mkdir -p deploy-package
+        # Next.js standalone build creates a self-contained app
+        if [ -d ".next/standalone" ]; then
+          echo "Using Next.js standalone build"
+          mkdir -p deploy-package
+          
+          # Copy standalone server files
+          cp -r .next/standalone/* deploy-package/
+          
+          # Copy static files separately (not included in standalone)
+          cp -r .next/static deploy-package/.next/ 2>/dev/null || true
+          cp -r public deploy-package/ 2>/dev/null || true
+          
+        else
+          echo "Standalone build not found, using regular build"
+          mkdir -p deploy-package
+          
+          # Copy the built app
+          cp -r .next deploy-package/
+          cp -r public deploy-package/ 2>/dev/null || true
+          cp package.json deploy-package/
+          
+          # Copy minimal node_modules
+          mkdir -p deploy-package/node_modules
+          for dep in next react react-dom; do
+            if [ -d "node_modules/$dep" ]; then
+              cp -r "node_modules/$dep" deploy-package/node_modules/
+            fi
+          done
+        fi
         
-        # Copy ONLY what's needed for production
-        cp -r .next deploy-package/
-        cp -r public deploy-package/ 2>/dev/null || true
-        cp package.json deploy-package/
-        
-        # Create a minimal package.json for production
-        cat > deploy-package/package.json << 'PACKAGE_EOF'
-        {
-          "name": "web",
-          "version": "0.1.0",
-          "private": true,
-          "scripts": {
-            "start": "next start -p $PORT"
-          },
-          "dependencies": {
-            "next": "15.5.3",
-            "react": "19.1.0",
-            "react-dom": "19.1.0"
-          }
-        }
-        PACKAGE_EOF
-        
-        # Copy Linux deployment scripts
-        cp startup.sh deploy-package/ 2>/dev/null || true
-        cp deploy.sh deploy-package/ 2>/dev/null || true
-        
-        # Create startup.sh for production
+        # Create startup script
         cat > deploy-package/startup.sh << 'STARTUP_EOF'
         #!/bin/bash
         set -e
-        echo "=== Starting Next.js production server ==="
+        echo "=== Starting Next.js server ==="
         cd /home/site/wwwroot
         
-        # Install minimal production dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing production dependencies..."
-            npm install --production --no-optional
-        fi
-        
-        # Ensure .next directory exists
-        if [ ! -d ".next" ]; then
-            echo "ERROR: .next directory not found. The application was not built properly."
+        # Check if this is a standalone build
+        if [ -f "server.js" ]; then
+            echo "Starting Next.js standalone server..."
+            PORT=${PORT:-8080} node server.js
+        elif [ -d ".next" ]; then
+            echo "Starting Next.js with npm..."
+            # Install deps if missing
+            if [ ! -f "node_modules/next/package.json" ]; then
+                npm install next react react-dom --production --no-save
+            fi
+            PORT=${PORT:-8080} npx next start
+        else
+            echo "ERROR: No Next.js build found!"
+            ls -la
             exit 1
         fi
-        
-        # Start the production server
-        PORT=${PORT:-8080} npm start
         STARTUP_EOF
         chmod +x deploy-package/startup.sh
         
+        # Add deployment configuration to skip build
+        cat > deploy-package/.deployment << 'DEPLOYMENT_EOF'
+        [config]
+        SCM_DO_BUILD_DURING_DEPLOYMENT = false
+        DEPLOYMENT_EOF
+        
         # Add .do-not-run-on-build flag to prevent Oryx auto-start
         touch deploy-package/.do-not-run-on-build
+        
+        # Add a web.config for Node.js on Linux
+        cat > deploy-package/web.config << 'WEBCONFIG_EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <system.webServer>
+            <handlers>
+              <add name="iisnode" path="startup.sh" verb="*" modules="iisnode"/>
+            </handlers>
+          </system.webServer>
+        </configuration>
+        WEBCONFIG_EOF
         
         # Create a package.json for production if needed
         cd deploy-package
