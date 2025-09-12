@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import { Configuration, PlaidApi, PlaidEnvironments, CountryCode, Products } from 'plaid';
 import { supabase } from '../config';
 import { encryptionService } from '../../../services/encryption.service';
 import { secretsService } from '../../../services/secrets.service';
@@ -47,7 +47,6 @@ async function decryptToken(encryptedToken: string): Promise<string> {
 // Plaid Integration Tool
 export const plaidTool = createTool({
   id: 'plaid-integration',
-  name: 'Plaid Bank Connection',
   description: 'Connect and sync bank/brokerage accounts via Plaid',
   inputSchema: z.object({
     action: z.enum([
@@ -66,7 +65,7 @@ export const plaidTool = createTool({
     startDate: z.string().optional(),
     endDate: z.string().optional(),
   }),
-  execute: async ({ action, userId, publicToken, accessToken, accountId, startDate, endDate }) => {
+  execute: async ({ action, userId, publicToken, accessToken, startDate, endDate }) => {
     switch (action) {
       case 'createLinkToken':
         // Create a link token for Plaid Link initialization

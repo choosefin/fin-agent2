@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import type { ApiRouteConfig, Handlers } from '@motia/core';
-import { plaidTool } from '../src/mastra/tools/plaid';
+import { createLinkToken } from '../src/mastra/tools/plaid-simple';
 
-export const config: ApiRouteConfig = {
-  type: 'api',
+export const config = {
+  type: 'api' as const,
   name: 'CreatePlaidLinkToken',
-  method: 'POST',
+  method: 'POST' as const,
   path: '/api/plaid/create-link-token',
   bodySchema: z.object({
     userId: z.string(),
@@ -14,32 +13,26 @@ export const config: ApiRouteConfig = {
   flows: ['plaid-integration'],
 };
 
-export const handler: Handlers['CreatePlaidLinkToken'] = async (req, { logger, emit, traceId }) => {
+export const handler = async (req: any, { logger, emit, traceId }: any) => {
   try {
     logger.info('Creating Plaid link token', { userId: req.body.userId, traceId });
 
-    const result = await plaidTool.execute({
-      action: 'createLinkToken',
-      userId: req.body.userId,
-    });
+    const result = await createLinkToken(req.body.userId);
 
     await emit({
       topic: 'plaid.link.created',
       data: {
         userId: req.body.userId,
-        linkToken: result.linkToken,
+        linkToken: result.link_token,
         traceId,
       },
     });
 
     return {
       status: 200,
-      body: {
-        link_token: result.linkToken,
-        expiration: result.expiration,
-      },
+      body: result,
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to create Plaid link token', { error: error.message, traceId });
     
     return {
