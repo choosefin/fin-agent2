@@ -69,26 +69,6 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     scrollToBottom();
   }, [messages]);
 
-  // Setup SSE connection for workflow updates
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
-    const eventSource = new EventSource(`${apiUrl}/api/workflow/stream`);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleWorkflowEvent(data);
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('SSE error:', error);
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [handleWorkflowEvent]);
-
   const handleWorkflowEvent = React.useCallback((event: {
     type: string;
     data: {
@@ -116,7 +96,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           })) || [],
           progress: {
             completed: 0,
-            total: event.data.steps.length,
+            total: event.data.steps?.length || 0,
             percentage: 0,
           },
         });
@@ -127,7 +107,9 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           setActiveWorkflow(prev => {
             if (!prev) return null;
             const steps = [...prev.steps];
-            steps[event.data.stepIndex].status = 'processing';
+            if (event.data.stepIndex !== undefined) {
+              steps[event.data.stepIndex].status = 'processing';
+            }
             return { ...prev, steps };
           });
         }
@@ -138,8 +120,10 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           setActiveWorkflow(prev => {
             if (!prev) return null;
             const steps = [...prev.steps];
-            steps[event.data.stepIndex].status = event.data.error ? 'error' : 'completed';
-            steps[event.data.stepIndex].result = event.data.result;
+            if (event.data.stepIndex !== undefined) {
+              steps[event.data.stepIndex].status = event.data.error ? 'error' : 'completed';
+              steps[event.data.stepIndex].result = event.data.result;
+            }
             
             const completed = steps.filter(s => s.status === 'completed').length;
             return {
@@ -161,7 +145,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           const workflowMessage: Message = {
             id: Date.now().toString(),
             role: 'system',
-            content: `✨ Workflow completed! ${event.data.results.length} agents have provided their analysis.`,
+            content: `✨ Workflow completed! ${event.data.results?.length || 0} agents have provided their analysis.`,
             timestamp: new Date(),
             workflowId: event.data.workflowId,
             isWorkflowResult: true,
@@ -186,6 +170,26 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
         break;
     }
   }, [activeWorkflow]);
+
+  // Setup SSE connection for workflow updates
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const eventSource = new EventSource(`${apiUrl}/api/workflow/stream`);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      handleWorkflowEvent(data);
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE error:', error);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [handleWorkflowEvent]);
 
   const triggerWorkflow = async (message: string) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
