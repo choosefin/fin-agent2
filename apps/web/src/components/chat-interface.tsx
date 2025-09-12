@@ -83,25 +83,37 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
 
   const defaultMessageHandler = async (message: string): Promise<string> => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
-    const response = await fetch(`${apiUrl}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        message,
-        assistantType: assistant.id,
-        userId: 'user-' + Date.now(), // Temporary user ID
-      }),
-    });
+    
+    try {
+      console.log('Sending request to:', `${apiUrl}/api/chat`);
+      const response = await fetch(`${apiUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Remove credentials: 'include' as it can cause CORS issues
+        body: JSON.stringify({
+          message,
+          assistantType: assistant.id,
+          userId: 'user-' + Date.now(), // Temporary user ID
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to get response');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Fetch error:', error);
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('Unable to connect to backend on port 3004. Please ensure the backend is running.');
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    return data.response;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
