@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     
     // Handle request body - it might be empty
-    let requestBody: any = {};
+    let requestBody: Record<string, unknown> = {};
     try {
       const contentType = request.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
           requestBody = JSON.parse(text);
         }
       }
-    } catch (parseError) {
+    } catch {
       console.log('Request body is empty or not JSON, using defaults');
     }
     
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (responseText) {
       try {
         data = JSON.parse(responseText);
-      } catch (e) {
+      } catch {
         console.error('Failed to parse response:', responseText);
         return NextResponse.json(
           { error: 'Invalid response from backend' },
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     
     // Check if it's an Axios error with response data
     if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as any;
+      const axiosError = error as { response?: { data?: unknown; status?: number }; message: string };
       return NextResponse.json(
         { 
           error: 'Failed to create link token',
