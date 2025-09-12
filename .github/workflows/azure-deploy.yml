@@ -235,8 +235,13 @@ jobs:
           echo "Using Next.js standalone build"
           mkdir -p deploy-package
           
-          # Copy standalone server files
-          cp -r .next/standalone/* deploy-package/
+          # The standalone build structure is .next/standalone/apps/web/
+          # We need to copy the contents of apps/web/ to the root
+          if [ -d ".next/standalone/apps/web" ]; then
+            cp -r .next/standalone/apps/web/* deploy-package/
+          else
+            cp -r .next/standalone/* deploy-package/
+          fi
           
           # Copy static files separately (not included in standalone)
           cp -r .next/static deploy-package/.next/ 2>/dev/null || true
