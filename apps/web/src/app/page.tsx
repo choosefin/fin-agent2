@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AssistantSelector, assistantProfiles, AssistantProfile } from '@/components/assistant-selector';
 import { ChatInterface } from '@/components/chat-interface';
 import { PlaidConnect } from '@/components/plaid-connect';
