@@ -223,8 +223,8 @@ jobs:
         pnpm build
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
-        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fuaogvgmdgndldimnnrs.supabase.co' }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1YW9ndmdtZGduZGxkaW1ubnJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM4NTU4OTAsImV4cCI6MjA0OTQzMTg5MH0.vFq6l6zVbG3M7MJBCymVcjJXNPiCrBvPBfqDOvLxvxo' }}
         SKIP_BUILD_PRODUCT_REDIRECTS: 1
         NODE_ENV: production
 
@@ -294,7 +294,7 @@ jobs:
                 ln -sfn /node_modules ./node_modules
             else
                 echo "Installing minimal dependencies..."
-                npm install next@15.5.3 react@19.1.0 react-dom@19.1.0 --production --no-save
+                npm install next@15.5.3 react@18.3.1 react-dom@18.3.1 @supabase/supabase-js@2.45.0 @supabase/auth-helpers-nextjs@0.10.0 --production --no-save
             fi
         fi
         
@@ -492,5 +492,17 @@ jobs:
             {
               "name": "POST_BUILD_COMMAND",
               "value": ""
+            },
+            {
+              "name": "NEXT_PUBLIC_SUPABASE_URL",
+              "value": "${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fuaogvgmdgndldimnnrs.supabase.co' }}"
+            },
+            {
+              "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+              "value": "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1YW9ndmdtZGduZGxkaW1ubnJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM4NTU4OTAsImV4cCI6MjA0OTQzMTg5MH0.vFq6l6zVbG3M7MJBCymVcjJXNPiCrBvPBfqDOvLxvxo' }}"
+            },
+            {
+              "name": "NEXT_PUBLIC_API_URL",
+              "value": "https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net"
             }
           ]
