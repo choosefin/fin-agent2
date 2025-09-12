@@ -285,28 +285,34 @@ jobs:
         echo "Files in /home/site/wwwroot:"
         ls -la
         
-        # Check for node_modules
-        if [ ! -d "node_modules" ] && [ ! -L "node_modules" ]; then
-            echo "WARNING: node_modules not found!"
-            # Try to create symlink if /node_modules exists (Azure's extraction)
+        # Check for node_modules - standalone build should have them
+        if [ ! -d "node_modules" ]; then
+            echo "ERROR: node_modules not found for standalone build!"
+            echo "This is a critical error - standalone builds must include node_modules"
+            
+            # Try recovery by checking common Azure locations
             if [ -d "/node_modules" ]; then
-                echo "Creating symlink to /node_modules..."
+                echo "Found node_modules at /node_modules, creating symlink..."
                 ln -sfn /node_modules ./node_modules
+            elif [ -f "node_modules.tar.gz" ]; then
+                echo "Found node_modules.tar.gz, extracting..."
+                tar -xzf node_modules.tar.gz
             else
-                echo "Installing minimal dependencies..."
-                npm install next@15.5.3 react@19.1.0 react-dom@19.1.0 @supabase/supabase-js@2.45.0 @supabase/auth-helpers-nextjs@0.10.0 --production --no-save
+                echo "FATAL: Cannot find node_modules anywhere!"
+                exit 1
             fi
+        else
+            echo "✓ node_modules directory found"
         fi
         
         # Check if this is a standalone build
         if [ -f "server.js" ]; then
-            echo "Starting Next.js standalone server..."
+            echo "Starting Next.js standalone server on port ${PORT:-8080}..."
             PORT=${PORT:-8080} node server.js
-        elif [ -d ".next" ]; then
-            echo "Starting Next.js with npm..."
-            PORT=${PORT:-8080} npx next start
         else
-            echo "ERROR: No Next.js build found!"
+            echo "ERROR: server.js not found!"
+            echo "Available files:"
+            ls -la
             exit 1
         fi
         STARTUP_EOF
@@ -334,6 +340,7 @@ jobs:
         
         cd deploy-package
         
+        # CRITICAL: Include node_modules in the package for standalone build
         # Create deployment package with .deployment at root
         zip -r ../deploy.zip . \
           -x "*.git*" \
@@ -341,7 +348,8 @@ jobs:
           -x ".next/cache/*" \
           -x "*test*" \
           -x "*.md" \
-          -x ".DS_Store"
+          -x ".DS_Store" \
+          -x "node_modules/.cache/*"
 
     - name: Configure Frontend App Service
       run: |
