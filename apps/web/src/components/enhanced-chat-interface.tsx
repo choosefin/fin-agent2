@@ -259,7 +259,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: response.response || response,
+          content: typeof response === 'string' ? response : response.response,
           timestamp: new Date(),
           assistantType: assistant.id,
         };
