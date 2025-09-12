@@ -57,17 +57,7 @@ export class CorsService {
     } else {
       // Development configuration - more permissive
       return {
-        origin: [
-          'http://localhost:3000',
-          'http://localhost:3001',
-          'http://localhost:5173',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:3001',
-          'http://127.0.0.1:5173',
-          'http://0.0.0.0:3000',
-          'http://0.0.0.0:3001',
-          'http://0.0.0.0:5173',
-        ],
+        origin: true, // Allow all origins in development
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
         allowedHeaders: [
           'Content-Type',
@@ -219,8 +209,13 @@ export class CorsService {
    */
   addAllowedOrigin(origin: string) {
     if (Array.isArray(this.config.origin)) {
-      if (!this.config.origin.includes(origin)) {
-        this.config.origin.push(origin);
+      const origins = this.config.origin as Array<string | RegExp>;
+      const found = origins.some(o => {
+        if (typeof o === 'string') return o === origin;
+        return false;
+      });
+      if (!found) {
+        (this.config.origin as Array<string | RegExp>).push(origin);
       }
     } else if (typeof this.config.origin === 'string') {
       this.config.origin = [this.config.origin, origin];
@@ -232,7 +227,10 @@ export class CorsService {
    */
   removeAllowedOrigin(origin: string) {
     if (Array.isArray(this.config.origin)) {
-      this.config.origin = this.config.origin.filter(o => o !== origin);
+      this.config.origin = (this.config.origin as Array<string | RegExp>).filter(o => {
+        if (typeof o === 'string') return o !== origin;
+        return true; // Keep RegExp patterns
+      });
     }
   }
 }
