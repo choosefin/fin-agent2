@@ -251,37 +251,23 @@ jobs:
               
               # Check if we have pnpm structure that needs fixing
               if [ -d "deploy-package/node_modules/.pnpm" ] && [ ! -d "deploy-package/node_modules/next" ]; then
-                echo "Detected pnpm structure, creating proper node_modules layout..."
-                cd deploy-package
+                echo "Detected pnpm structure, fixing for Azure..."
                 
-                # Use Node.js to create a proper node_modules structure
-                cat > fix-modules.js << 'FIXMODULES_EOF'
-const fs = require('fs');
-const path = require('path');
-
-// Find and copy critical packages from .pnpm to root
-const packages = ['next', 'react', 'react-dom'];
-const pnpmDir = path.join('node_modules', '.pnpm');
-
-packages.forEach(pkg => {
-  const targetPath = path.join('node_modules', pkg);
-  if (!fs.existsSync(targetPath)) {
-    // Find the package in .pnpm
-    const dirs = fs.readdirSync(pnpmDir);
-    const pkgDir = dirs.find(d => d.startsWith(pkg + '@'));
-    if (pkgDir) {
-      const sourcePath = path.join(pnpmDir, pkgDir, 'node_modules', pkg);
-      if (fs.existsSync(sourcePath)) {
-        console.log('Copying ' + pkg + ' from pnpm structure...');
-        fs.cpSync(sourcePath, targetPath, {recursive: true});
-      }
-    }
-  }
-});
-FIXMODULES_EOF
-                node fix-modules.js || echo "Failed to fix modules structure"
-                rm -f fix-modules.js
-                cd ..
+                # Find and copy critical packages from pnpm structure
+                for pkg in next react react-dom; do
+                  if [ ! -d "deploy-package/node_modules/$pkg" ]; then
+                    echo "Looking for $pkg in pnpm structure..."
+                    # Find the package in .pnpm directory
+                    pnpm_pkg=$(find deploy-package/node_modules/.pnpm -maxdepth 1 -type d -name "$pkg@*" | head -1)
+                    if [ -n "$pnpm_pkg" ]; then
+                      src="$pnpm_pkg/node_modules/$pkg"
+                      if [ -d "$src" ]; then
+                        echo "Copying $pkg to node_modules root..."
+                        cp -r "$src" "deploy-package/node_modules/$pkg"
+                      fi
+                    fi
+                  fi
+                done
               fi
             fi
           else
