@@ -87,7 +87,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
       case 'workflow.started':
         setActiveWorkflow({
           workflowId: event.data.workflowId,
-          name: event.data.name,
+          name: event.data.name || 'Workflow',
           steps: event.data.steps?.map((s, i: number) => ({
             index: i,
             agent: s.agent,
