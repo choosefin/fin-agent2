@@ -223,8 +223,8 @@ jobs:
         pnpm build
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
-        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        NEXT_PUBLIC_SUPABASE_URL: https://fuaogvgmdgndldimnnrs.supabase.co
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1YW9ndmdtZGduZGxkaW1ubnJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDY2ODQ0MjIsImV4cCI6MTk2MjI2MDQyMn0.dummy-key-for-build' }}
         SKIP_BUILD_PRODUCT_REDIRECTS: 1
         NODE_ENV: production
 
