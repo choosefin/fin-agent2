@@ -31,6 +31,10 @@ You need to add the following secrets to your GitHub repository:
 
 #### Azure Credentials (Required for App Settings)
 
+**AZURE_RESOURCE_GROUP**
+- The name of your Azure resource group
+- Default: `finagent-rg`
+
 **AZURE_CREDENTIALS**
 ```json
 {
@@ -51,6 +55,8 @@ az ad sp create-for-rbac --name "github-actions-finagent" \
 ```
 
 Copy the JSON output and save it as the `AZURE_CREDENTIALS` secret.
+
+⚠️ **IMPORTANT**: Never commit the credentials JSON to your repository!
 
 #### Application Secrets (Required)
 

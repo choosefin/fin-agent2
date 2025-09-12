@@ -26,6 +26,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      continue-on-error: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -66,33 +72,30 @@ jobs:
         rm -f .deployment deploy.cmd
         
         # Create a startup script for Azure Linux App Service
-        cat > startup.sh << 'EOF'
-#!/bin/bash
-echo "Starting Motia backend application..."
-cd /home/site/wwwroot
-
-# Install dependencies if node_modules doesn't exist
-if [ ! -d "node_modules" ]; then
-    echo "Installing dependencies..."
-    npm ci --only=production
-fi
-
-# Install Motia CLI globally if not present
-if ! command -v motia &> /dev/null; then
-    echo "Installing Motia CLI..."
-    npm install -g motia@0.6.4-beta.130
-fi
-
-# Build the Motia project
-echo "Building Motia backend..."
-motia build || echo "Build completed or not required"
-
-# Start the application
-echo "Starting Motia on port ${PORT:-3001}..."
-motia start --port ${PORT:-3001} --host 0.0.0.0
-EOF
+        cat > startup.sh << 'BACKEND_EOF'
+        #!/bin/bash
+        echo "Starting Motia backend application..."
+        cd /home/site/wwwroot
+        
+        # Install dependencies if node_modules doesn't exist
+        if [ ! -d "node_modules" ]; then
+            echo "Installing dependencies..."
+            npm ci --only=production
+        fi
+        
+        # Use npx to run Motia commands (avoids global installation)
+        echo "Building Motia backend..."
+        npx motia build || echo "Build completed or not required"
+        
+        # Start the application using npx
+        echo "Starting Motia on port \${PORT:-3001}..."
+        PORT=\${PORT:-3001} npx motia dev --host 0.0.0.0
+        BACKEND_EOF
         
         chmod +x startup.sh
+        
+        # Remove Windows-specific files
+        rm -f deploy.cmd .deployment
         
         # Create deployment package
         zip -r deploy.zip . \
@@ -101,16 +104,76 @@ EOF
           -x "*.env*" \
           -x "*test*" \
           -x "*.md" \
-          -x ".DS_Store" \
-          -x ".deployment" \
-          -x "deploy.cmd"
+          -x ".DS_Store"
 
-    - name: Deploy to Azure Web App
+    - name: Configure Backend App Service
+      run: |
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, using default"
+          RESOURCE_GROUP="finagent-rg"
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
+        # Disable Oryx build
+        az webapp config appsettings set \
+          --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                    ENABLE_ORYX_BUILD=false || true
+        
+        # Remove WEBSITE_RUN_FROM_PACKAGE if it exists
+        az webapp config appsettings delete \
+          --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --setting-names WEBSITE_RUN_FROM_PACKAGE 2>/dev/null || true
+        
+        # Stop and restart to clear any locks
+        az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group "$RESOURCE_GROUP" || true
+        sleep 5
+        az webapp start --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group "$RESOURCE_GROUP" || true
+      continue-on-error: true
+    
+    - name: Deploy Backend to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME_BACKEND }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_BACKEND }}
         package: apps/backend/deploy.zip
+        clean: true
+        restart: true
+      timeout-minutes: 10
+      continue-on-error: true
+      id: deploy-backend
+    
+    - name: Retry Backend Deployment if Failed
+      if: steps.deploy-backend.outcome == 'failure'
+      run: |
+        echo "First deployment attempt failed, waiting 30 seconds before retry..."
+        sleep 30
+        
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, trying to extract from app"
+          # Try to get resource group from the app itself
+          RESOURCE_GROUP=$(az webapp list --query "[?name=='${{ env.AZURE_WEBAPP_NAME_BACKEND }}'].resourceGroup" -o tsv 2>/dev/null || echo "")
+          if [ -z "$RESOURCE_GROUP" ]; then
+            echo "Could not determine resource group, using default: finagent-rg"
+            RESOURCE_GROUP="finagent-rg"
+          fi
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
+        # Try using Azure CLI directly
+        az webapp deployment source config-zip \
+          --resource-group "$RESOURCE_GROUP" \
+          --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --src apps/backend/deploy.zip \
+          --timeout 600 || exit 1
 
   build-and-deploy-frontend:
     name: Build and Deploy Frontend
@@ -121,6 +184,12 @@ EOF
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      continue-on-error: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -152,50 +221,180 @@ EOF
 
     - name: Build frontend
       run: |
-        pnpm run build --filter=web
+        cd apps/web
+        # Build Next.js in standalone mode
+        pnpm build
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        SKIP_BUILD_PRODUCT_REDIRECTS: 1
+        NODE_ENV: production
 
     - name: Create deployment package
       run: |
         cd apps/web
-        # Create startup script for Azure
-        cat > startup.sh << 'EOF'
-        #!/bin/bash
-        echo "Starting Next.js application..."
-        cd /home/site/wwwroot
         
-        # Install dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing dependencies..."
-            npm install --production
+        # Next.js standalone build creates a self-contained app
+        if [ -d ".next/standalone" ]; then
+          echo "Using Next.js standalone build"
+          mkdir -p deploy-package
+          
+          # The standalone build structure is .next/standalone/apps/web/
+          # We need to copy the contents of apps/web/ to the root
+          if [ -d ".next/standalone/apps/web" ]; then
+            cp -r .next/standalone/apps/web/* deploy-package/
+          else
+            cp -r .next/standalone/* deploy-package/
+          fi
+          
+          # Copy static files separately (not included in standalone)
+          cp -r .next/static deploy-package/.next/ 2>/dev/null || true
+          cp -r public deploy-package/ 2>/dev/null || true
+          
+        else
+          echo "Standalone build not found, using regular build"
+          mkdir -p deploy-package
+          
+          # Copy the built app
+          cp -r .next deploy-package/
+          cp -r public deploy-package/ 2>/dev/null || true
+          cp package.json deploy-package/
+          
+          # Copy minimal node_modules
+          mkdir -p deploy-package/node_modules
+          for dep in next react react-dom; do
+            if [ -d "node_modules/$dep" ]; then
+              cp -r "node_modules/$dep" deploy-package/node_modules/
+            fi
+          done
         fi
         
-        # Start the application
-        echo "Starting application on port 8080..."
-        PORT=8080 npm start
+        # Create startup script
+        cat > deploy-package/startup.sh << 'STARTUP_EOF'
+        #!/bin/bash
+        set -e
+        echo "=== Starting Next.js server ==="
+        cd /home/site/wwwroot
+        
+        # Check if this is a standalone build
+        if [ -f "server.js" ]; then
+            echo "Starting Next.js standalone server..."
+            PORT=${PORT:-8080} node server.js
+        elif [ -d ".next" ]; then
+            echo "Starting Next.js with npm..."
+            # Install deps if missing
+            if [ ! -f "node_modules/next/package.json" ]; then
+                npm install next react react-dom --production --no-save
+            fi
+            PORT=${PORT:-8080} npx next start
+        else
+            echo "ERROR: No Next.js build found!"
+            ls -la
+            exit 1
+        fi
+        STARTUP_EOF
+        chmod +x deploy-package/startup.sh
+        
+        # CRITICAL: Add deployment configuration at root level
+        cat > deploy-package/.deployment << 'EOF'
+        [config]
+        SCM_DO_BUILD_DURING_DEPLOYMENT = false
         EOF
         
-        chmod +x startup.sh
+        # Add package.json with start script (required by Azure)
+        cat > deploy-package/package.json << 'EOF'
+        {
+          "name": "web",
+          "version": "1.0.0",
+          "scripts": {
+            "start": "bash startup.sh"
+          }
+        }
+        EOF
         
-        # Create deployment package
-        zip -r deploy.zip . \
+        # Add .do-not-run-on-build flag
+        touch deploy-package/.do-not-run-on-build
+        
+        cd deploy-package
+        
+        # Create deployment package with .deployment at root
+        zip -r ../deploy.zip . \
           -x "*.git*" \
-          -x "*node_modules*" \
           -x "*.env*" \
           -x ".next/cache/*" \
           -x "*test*" \
           -x "*.md" \
           -x ".DS_Store"
 
-    - name: Deploy to Azure Web App
+    - name: Configure Frontend App Service
+      run: |
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, using default"
+          RESOURCE_GROUP="finagent-rg"
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
+        # Disable Oryx build
+        az webapp config appsettings set \
+          --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                    ENABLE_ORYX_BUILD=false || true
+        
+        # Remove WEBSITE_RUN_FROM_PACKAGE if it exists
+        az webapp config appsettings delete \
+          --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --setting-names WEBSITE_RUN_FROM_PACKAGE 2>/dev/null || true
+        
+        # Stop and restart to clear any locks
+        az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group "$RESOURCE_GROUP" || true
+        sleep 5
+        az webapp start --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group "$RESOURCE_GROUP" || true
+      continue-on-error: true
+    
+    - name: Deploy Frontend to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME_FRONTEND }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
         package: apps/web/deploy.zip
+        clean: true
+        restart: true
+      timeout-minutes: 10
+      continue-on-error: true
+      id: deploy-frontend
+    
+    - name: Retry Frontend Deployment if Failed
+      if: steps.deploy-frontend.outcome == 'failure'
+      run: |
+        echo "First deployment attempt failed, waiting 30 seconds before retry..."
+        sleep 30
+        
+        # Extract resource group from app name or use default
+        RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+        if [ -z "$RESOURCE_GROUP" ]; then
+          echo "Warning: AZURE_RESOURCE_GROUP secret not set, trying to extract from app"
+          # Try to get resource group from the app itself
+          RESOURCE_GROUP=$(az webapp list --query "[?name=='${{ env.AZURE_WEBAPP_NAME_FRONTEND }}'].resourceGroup" -o tsv 2>/dev/null || echo "")
+          if [ -z "$RESOURCE_GROUP" ]; then
+            echo "Could not determine resource group, using default: finagent-rg"
+            RESOURCE_GROUP="finagent-rg"
+          fi
+        fi
+        echo "Using resource group: $RESOURCE_GROUP"
+        
+        # Try using Azure CLI directly
+        az webapp deployment source config-zip \
+          --resource-group "$RESOURCE_GROUP" \
+          --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --src apps/web/deploy.zip \
+          --timeout 600 || exit 1
 
   configure-app-settings:
     name: Configure App Settings
@@ -231,8 +430,16 @@ EOF
               "value": "false"
             },
             {
+              "name": "ENABLE_ORYX_BUILD",
+              "value": "false"
+            },
+            {
               "name": "WEBSITE_RUN_FROM_PACKAGE",
               "value": "0"
+            },
+            {
+              "name": "POST_BUILD_COMMAND",
+              "value": ""
             }
           ]
 
@@ -259,7 +466,15 @@ EOF
               "value": "false"
             },
             {
+              "name": "ENABLE_ORYX_BUILD",
+              "value": "false"
+            },
+            {
               "name": "WEBSITE_RUN_FROM_PACKAGE",
               "value": "0"
+            },
+            {
+              "name": "POST_BUILD_COMMAND",
+              "value": ""
             }
           ]

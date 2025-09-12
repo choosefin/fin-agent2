@@ -18,3 +18,8 @@ frontend-publish-profile.xml
 # Azure deployment files
 azure-deploy.parameters.json
 *.zip
+-e 
+# Azure credentials - NEVER commit these
+azure-credentials.json
+*-publish-profile.xml
+*.publishsettings

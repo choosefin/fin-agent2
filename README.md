@@ -1,6 +1,6 @@
 # Intelligence by Finn - AI-Powered Financial Platform
 
-A hybrid financial AI system combining Next.js frontend with Motia-orchestrated microservices for intelligent portfolio management, market analysis, and trading insights. Powered by multi-agent collaboration, persistent memory, and comprehensive financial data integration.
+A hybrid financial AI system combining Next.js frontend with Motia-orchestrated backend services for intelligent portfolio management, market analysis, and trading insights. Powered by Mastra AI framework for multi-agent collaboration and comprehensive financial data integration.
 
 ## Project Structure
 
@@ -8,14 +8,28 @@ A hybrid financial AI system combining Next.js frontend with Motia-orchestrated 
 finagent2/
 ├── apps/
 │   ├── backend/                 # Motia backend application
+│   │   ├── config/             # Security and app configuration
+│   │   ├── middleware/         # Authentication and rate limiting
 │   │   ├── services/           # Business logic services
-│   │   │   ├── pet-store.ts
-│   │   │   └── types.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── azure-openai.service.ts
+│   │   │   ├── cache.service.ts
+│   │   │   ├── database.service.ts
+│   │   │   └── encryption.service.ts
+│   │   ├── src/
+│   │   │   └── mastra/        # Mastra AI framework integration
+│   │   │       ├── agents/    # AI agent definitions
+│   │   │       ├── tools/     # Market data and Plaid tools
+│   │   │       └── config.ts
 │   │   ├── steps/              # Motia steps (API, Event, Cron)
 │   │   │   ├── api.step.ts
-│   │   │   ├── notification.step.ts
-│   │   │   ├── process-food-order.step.ts
+│   │   │   ├── chat.step.ts
+│   │   │   ├── market-data.step.ts
+│   │   │   ├── plaid-link.step.ts
+│   │   │   ├── plaid-exchange.step.ts
 │   │   │   └── state-audit-cron.step.ts
+│   │   ├── supabase/           # Database migrations and RLS
+│   │   ├── tests/             # Unit and integration tests
 │   │   ├── motia-workbench.json
 │   │   ├── package.json
 │   │   ├── tsconfig.json
@@ -27,108 +41,105 @@ finagent2/
 │       │   │   ├── layout.tsx
 │       │   │   └── page.tsx
 │       │   ├── components/    # React components
-│       │   ├── hooks/         # Custom React hooks
+│       │   │   ├── ui/       # Reusable UI components
+│       │   │   ├── assistant-selector.tsx
+│       │   │   ├── chat-interface.tsx
+│       │   │   └── plaid-connect.tsx
 │       │   └── lib/           # Utilities and API clients
 │       ├── public/            # Static assets
 │       ├── package.json
 │       └── next.config.ts
 │
-├── packages/
-│   ├── shared/                # Shared types and utilities
-│   │   ├── src/
-│   │   │   ├── types/        # TypeScript type definitions
-│   │   │   ├── schemas/      # Zod validation schemas
-│   │   │   └── utils/        # Shared utility functions
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── ui/                    # Shared UI components
-│   │   ├── src/
-│   │   │   └── components/   # Reusable React components
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── config/                # Shared configuration
-│       ├── eslint/           # ESLint configurations
-│       ├── typescript/       # TypeScript configs
-│       └── tailwind/         # Tailwind presets
+├── scripts/                   # Deployment and automation scripts
+│   └── azure-deploy.sh
 │
 ├── docs/                      # Documentation
 │   ├── architecture.md
-│   ├── api-specification.md
-│   └── deployment.md
+│   ├── deployment.md
+│   ├── performance-tuning.md
+│   └── azure-troubleshooting.md
 │
 ├── .claude/                   # Claude AI configurations
+│   ├── agents/               # AI agent prompts
+│   ├── commands/             # Custom commands
+│   └── CLAUDE.md            # SuperClaude configuration
 ├── .cursor/                   # Cursor AI rules
+│   └── rules/               # Development patterns
+├── .github/                   # GitHub workflows
+│   └── workflows/
+│       ├── azure-deploy.yml
+│       └── claude-code-review.yml
 ├── turbo.json                # Turborepo configuration
 ├── package.json              # Root workspace package.json
 ├── pnpm-workspace.yaml       # PNPM workspace configuration
-└── .gitignore
+├── docker-compose.yml        # Docker development setup
+└── AGENTS.md                 # Motia backend guide
 
 ```
 
 ## Key Features
 
-### 🤖 Multi-Agent Financial Intelligence
+### 🤖 Multi-Agent Financial Intelligence (Mastra Framework)
 - **6 Specialized AI Assistants**: General, Analyst, Trading, Investment Advisor, Risk Manager, Macro Economist
-- **Agent Debate & Collaboration**: Multi-perspective analysis with structured turn-taking debates
-- **Persistent Memory**: Context-aware conversations using mem0 for long-term memory
-- **Parallel Search**: Simultaneous data gathering across news, SEC filings, social media, and market data
+- **Mastra AI Integration**: Powerful agent orchestration with tools and workflows
+- **Azure OpenAI Service**: GPT-4 powered analysis and recommendations
+- **Intelligent Tools**: Market data fetching, Plaid integration, portfolio analysis
 
 ### 📊 Trading & Market Analysis
-- **TradingView Integration**: Advanced charting with real-time Polygon.io data feeds
-- **Brokerage Integration**: Trade execution through Alpaca API with risk controls
-- **Multi-Asset Comparison**: Side-by-side analysis with AI-powered insights
-- **Technical & Fundamental Analysis**: Comprehensive market evaluation
+- **Market Data API**: Real-time and historical data via dedicated API endpoints
+- **Yahoo Finance Integration**: Comprehensive market data and analysis
+- **Polygon.io Support**: Professional-grade market data feeds
+- **Alpaca Trading API**: Brokerage integration for trade execution
 
 ### 💼 Portfolio Management
-- **Account Aggregation**: Secure connection via Plaid to banks and brokerages
-- **Holistic Financial View**: Net worth tracking across all connected accounts
-- **AI-Powered Recommendations**: Personalized advice based on complete financial picture
-- **Risk Management**: Automated monitoring and alerts
+- **Plaid Integration**: Secure bank and brokerage account aggregation
+- **Token Exchange System**: Secure Plaid token management via API endpoints
+- **Supabase Database**: PostgreSQL with row-level security for user data
+- **Redis Caching**: High-performance caching for market data and API responses
 
 ### 🏗️ Technical Architecture
-- **Hybrid Microservices**: TypeScript (Fastify) and Python services
-- **Event-Driven Backend**: Motia orchestration with API, Event, and Cron steps
-- **Cloud Native**: Azure container deployment with auto-scaling
-- **Real-time Updates**: WebSocket support for live data streaming
-- **Performance Optimization**: Redis caching layer for market data and API responses
+- **Event-Driven Backend**: Motia v0.6.4 orchestration with API, Event, and Cron steps
+- **Security First**: JWT authentication, rate limiting, input sanitization, encryption
+- **Azure Cloud Deployment**: Container Instances with GitHub Actions CI/CD
+- **Performance Optimization**: Redis caching, connection pooling, optimized queries
 - **Monorepo Management**: Turborepo for optimized builds and caching
-- **Multi-Stage Docker**: Optimized container builds for production deployment
+- **Multi-Stage Docker**: Production-ready containerization with health checks
+- **Comprehensive Testing**: Jest unit tests with coverage reporting
 
 ## Tech Stack
 
-### Backend (Motia)
-- **Framework**: Motia v0.6.4+ - Event-driven multi-language backend
-- **Languages**: TypeScript (primary), Python for ML/AI services
-- **Architecture**: Step-based (API, Event, Cron, NOOP steps)
-- **AI Framework**: AgentScope for multi-agent orchestration
-- **Memory**: mem0 for persistent agent memory
+### Backend (Motia + Mastra)
+- **Framework**: Motia v0.6.4 - Event-driven backend orchestration
+- **AI Framework**: Mastra Core v0.16.2 for agent orchestration
+- **Languages**: TypeScript with strict mode
+- **Architecture**: Step-based (API, Event, Cron steps)
+- **Security**: Azure Key Vault, JWT auth, encryption services
 - **Caching**: Redis for high-performance data caching
-- **Validation**: Zod schemas
+- **Validation**: Zod schemas with strict input sanitization
 - **State**: Built-in state management with traceId scoping
 
 ### Frontend (Next.js)
 - **Framework**: Next.js 14+ with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Charts**: TradingView Advanced Charts
-- **Authentication**: Supabase Auth
-- **State Management**: React Context / Zustand
-- **Data Fetching**: React Query / SWR
-- **UI Components**: Radix UI / shadcn/ui
+- **Language**: TypeScript with strict mode
+- **Styling**: Tailwind CSS with custom components
+- **UI Components**: Custom chat interface, assistant selector, Plaid connect
+- **Authentication**: Integration ready for Supabase Auth
+- **State Management**: React hooks and context
+- **Build Tools**: Turbo for optimized builds
 
 ### Integrations
-- **Market Data**: Polygon.io for real-time quotes and historical data
-- **Trading**: Alpaca API for brokerage operations
-- **Banking**: Plaid for account aggregation
+- **AI Provider**: Azure OpenAI Service (GPT-4)
+- **Market Data**: Yahoo Finance, Polygon.io, Alpaca Markets
+- **Banking**: Plaid for secure account aggregation
 - **Database**: Supabase (PostgreSQL with row-level security)
-- **Cloud**: Microsoft Azure (Container Instances/AKS)
+- **Cloud**: Microsoft Azure (Container Instances, Key Vault)
+- **Caching**: Redis for performance optimization
 
-### Shared Packages
-- **shared**: Type definitions, Zod schemas, utilities
-- **ui**: Reusable React components
-- **config**: Shared ESLint, TypeScript, Tailwind configs
+### Development Tools
+- **AI Assistance**: Claude and Cursor configurations for development
+- **GitHub Actions**: Automated deployment and code review workflows
+- **Docker**: Multi-stage builds for containerization
+- **Testing**: Jest with comprehensive test coverage
 
 ## Getting Started
 
@@ -155,6 +166,13 @@ pnpm install
 cp apps/backend/.env.example apps/backend/.env
 cp apps/web/.env.example apps/web/.env
 ```
+
+Edit the `.env` files with your API keys:
+- Azure OpenAI credentials
+- Plaid API keys
+- Supabase connection string
+- Redis connection (optional for local dev)
+- Market data API keys (Yahoo Finance, Polygon.io, Alpaca)
 
 ### Development
 
@@ -195,14 +213,22 @@ pnpm test --filter=backend
 pnpm test --filter=web
 ```
 
-## API Communication
+## API Endpoints
 
-The Next.js frontend communicates with the Motia backend through:
+The Motia backend provides the following API endpoints:
 
-1. **REST API Endpoints**: Defined in `apps/backend/steps/api.step.ts`
-2. **Type Safety**: Shared Zod schemas in `packages/shared`
-3. **Authentication**: JWT tokens (implementation pending)
-4. **Real-time Updates**: WebSocket support (planned)
+### Core APIs
+- `POST /api/chat` - Chat with AI assistants
+- `POST /api/market-data` - Fetch market data for symbols
+- `POST /api/plaid/link` - Initialize Plaid Link
+- `POST /api/plaid/exchange` - Exchange Plaid public token
+- `POST /basic-tutorial` - Legacy tutorial endpoint
+
+### Security Features
+- JWT authentication middleware
+- Rate limiting per user/IP
+- Input sanitization with Zod schemas
+- CORS configuration for production
 
 ## Deployment
 
@@ -218,29 +244,34 @@ docker-compose up
 ```
 
 ### Azure Deployment
+The application automatically deploys to Azure App Service via GitHub Actions when pushing to the main branch.
+
 ```bash
-# Deploy to Azure Container Instances
+# Manual deployment (if needed)
 ./scripts/azure-deploy.sh
 
-# Or use ARM template directly
-az deployment group create \
-  --resource-group finagent-rg \
-  --template-file azure-deploy.json \
-  --parameters azure-deploy.parameters.json
+# Or deploy specific apps
+cd apps/backend && ./deploy.sh  # Deploy backend
+cd apps/web && ./deploy.sh      # Deploy frontend
 ```
 
-### Backend (Motia)
-- Deploy using Motia's built-in deployment tools
-- Supports AWS Lambda, Google Cloud Functions, Azure Functions
-- Container deployment via Docker with multi-stage builds
-- Redis caching layer for improved performance
+Deployment features:
+- Linux-based App Service containers
+- Automatic builds via GitHub Actions
+- Environment variable management via Azure Key Vault
+- Health checks and auto-restart
 
-### Frontend (Next.js)
-- Vercel (recommended)
-- Netlify
-- AWS Amplify
-- Self-hosted via Docker
-- Azure Container Instances (production)
+### Backend Deployment
+- **Azure Container Instances**: Production deployment via GitHub Actions
+- **Docker Support**: Multi-stage Dockerfile with health checks
+- **Environment Variables**: Managed via Azure Key Vault
+- **Monitoring**: Azure Application Insights integration
+
+### Frontend Deployment
+- **Vercel**: Recommended for Next.js optimization
+- **Azure Static Web Apps**: Alternative cloud deployment
+- **Docker**: Containerized deployment with nginx
+- **CDN**: CloudFlare or Azure CDN for global distribution
 
 ## Scripts
 
@@ -263,12 +294,37 @@ az deployment group create \
 - `pnpm start` - Start production server
 - `pnpm lint` - Run ESLint
 
+## Current Status
+
+### ✅ Implemented
+- Motia backend with API endpoints
+- Mastra AI agent framework integration
+- Plaid account aggregation
+- Market data fetching
+- Redis caching layer
+- Security middleware (auth, rate limiting)
+- Azure deployment configuration
+- GitHub Actions CI/CD
+
+### 🚧 In Progress
+- Agent debate workflows
+- Frontend UI completion
+- WebSocket real-time updates
+- Advanced trading features
+
+### 📋 Planned
+- Mobile application
+- Advanced portfolio analytics
+- Social trading features
+- Automated trading strategies
+
 ## Contributing
 
 1. Create a feature branch
-2. Make your changes
-3. Run tests and linting
-4. Submit a pull request
+2. Follow the code style in AGENTS.md
+3. Run tests: `pnpm test`
+4. Run linting: `pnpm lint`
+5. Submit a pull request
 
 ## Architecture Decisions
 
@@ -284,19 +340,22 @@ az deployment group create \
 - **Type Safety**: End-to-end type safety with shared schemas
 - **Scalability**: Both frameworks designed for production scale
 
-### Why Multi-Agent Architecture?
-- **Specialized Expertise**: Each agent focuses on specific financial domains
-- **Collaborative Intelligence**: Agents debate and reach consensus for better decisions
-- **Parallel Processing**: Multiple agents work simultaneously on complex analysis
-- **Persistent Context**: mem0 enables long-term relationship building
+### Why Mastra + Motia?
+- **Mastra AI Framework**: Production-ready agent orchestration with tools and workflows
+- **Motia Backend**: Event-driven architecture for scalable microservices
+- **Specialized Agents**: Each agent has domain-specific tools and prompts
+- **Tool Integration**: Seamless integration with financial APIs and data sources
 
 ## Security & Compliance
 
-- **Authentication**: Multi-factor authentication via Supabase
-- **Data Encryption**: End-to-end encryption for sensitive financial data
-- **Row-Level Security**: PostgreSQL RLS policies for data isolation
-- **Audit Logging**: Complete audit trail of all agent actions and data access
-- **Compliance Ready**: Built for financial industry standards
+- **Authentication**: JWT-based auth with secure token management
+- **Secrets Management**: Azure Key Vault for API keys and credentials
+- **Data Encryption**: AES-256 encryption for sensitive data
+- **Input Validation**: Comprehensive Zod schemas with sanitization
+- **Rate Limiting**: Per-user and IP-based rate limiting
+- **CORS**: Strict origin validation for production
+- **Audit Logging**: Structured logging with traceId tracking
+- **Database Security**: Supabase RLS policies and secure connections
 
 ## License
 
