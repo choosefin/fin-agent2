@@ -5,11 +5,8 @@ on:
     branches:
       - main
       - master
-  pull_request:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
+  # Remove pull_request trigger - we don't want to deploy on PRs
+  workflow_dispatch:  # Manual trigger for emergency deployments
 
 env:
   AZURE_WEBAPP_NAME_BACKEND: finagent-backend-pps457j4wjrc6
@@ -87,9 +84,9 @@ jobs:
         echo "Building Motia backend..."
         npx motia build || echo "Build completed or not required"
         
-        # Start the application using npx
+        # Start the application using npx in production mode
         echo "Starting Motia on port \${PORT:-3001}..."
-        PORT=\${PORT:-3001} npx motia dev --host 0.0.0.0
+        PORT=\${PORT:-3001} npx motia start --host 0.0.0.0
         BACKEND_EOF
         
         chmod +x startup.sh
@@ -97,14 +94,14 @@ jobs:
         # Remove Windows-specific files
         rm -f deploy.cmd .deployment
         
-        # Create deployment package
+        # Create deployment package INCLUDING node_modules for Motia
         zip -r deploy.zip . \
           -x "*.git*" \
-          -x "*node_modules*" \
           -x "*.env*" \
           -x "*test*" \
           -x "*.md" \
-          -x ".DS_Store"
+          -x ".DS_Store" \
+          -x "node_modules/.cache/*"
 
     - name: Configure Backend App Service
       run: |
