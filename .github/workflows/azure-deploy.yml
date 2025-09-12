@@ -294,7 +294,7 @@ jobs:
                 ln -sfn /node_modules ./node_modules
             else
                 echo "Installing minimal dependencies..."
-                npm install next@15.5.3 react@18.3.1 react-dom@18.3.1 @supabase/supabase-js@2.45.0 @supabase/auth-helpers-nextjs@0.10.0 --production --no-save
+                npm install next@15.5.3 react@19.1.0 react-dom@19.1.0 @supabase/supabase-js@2.45.0 @supabase/auth-helpers-nextjs@0.10.0 --production --no-save
             fi
         fi
         
