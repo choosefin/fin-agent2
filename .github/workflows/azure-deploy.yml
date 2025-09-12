@@ -106,7 +106,7 @@ jobs:
           -x "*.md" \
           -x ".DS_Store"
 
-    - name: Stop Backend Deployment Slot (if exists)
+    - name: Configure Backend App Service
       run: |
         # Extract resource group from app name or use default
         RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
@@ -116,6 +116,15 @@ jobs:
         fi
         echo "Using resource group: $RESOURCE_GROUP"
         
+        # Disable Oryx build
+        az webapp config appsettings set \
+          --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                    WEBSITE_RUN_FROM_PACKAGE=0 \
+                    ENABLE_ORYX_BUILD=false || true
+        
+        # Stop and restart to clear any locks
         az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
           --resource-group "$RESOURCE_GROUP" || true
         sleep 5
@@ -277,31 +286,29 @@ jobs:
         STARTUP_EOF
         chmod +x deploy-package/startup.sh
         
-        # Add deployment configuration to skip build
-        cat > deploy-package/.deployment << 'DEPLOYMENT_EOF'
+        # CRITICAL: Add deployment configuration at root level
+        cat > deploy-package/.deployment << 'EOF'
         [config]
         SCM_DO_BUILD_DURING_DEPLOYMENT = false
-        DEPLOYMENT_EOF
+        EOF
         
-        # Add .do-not-run-on-build flag to prevent Oryx auto-start
+        # Add package.json with start script (required by Azure)
+        cat > deploy-package/package.json << 'EOF'
+        {
+          "name": "web",
+          "version": "1.0.0",
+          "scripts": {
+            "start": "bash startup.sh"
+          }
+        }
+        EOF
+        
+        # Add .do-not-run-on-build flag
         touch deploy-package/.do-not-run-on-build
         
-        # Add a web.config for Node.js on Linux
-        cat > deploy-package/web.config << 'WEBCONFIG_EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <configuration>
-          <system.webServer>
-            <handlers>
-              <add name="iisnode" path="startup.sh" verb="*" modules="iisnode"/>
-            </handlers>
-          </system.webServer>
-        </configuration>
-        WEBCONFIG_EOF
-        
-        # Create a package.json for production if needed
         cd deploy-package
         
-        # Create deployment package
+        # Create deployment package with .deployment at root
         zip -r ../deploy.zip . \
           -x "*.git*" \
           -x "*.env*" \
@@ -310,7 +317,7 @@ jobs:
           -x "*.md" \
           -x ".DS_Store"
 
-    - name: Stop Frontend Deployment Slot (if exists)
+    - name: Configure Frontend App Service
       run: |
         # Extract resource group from app name or use default
         RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
@@ -320,6 +327,15 @@ jobs:
         fi
         echo "Using resource group: $RESOURCE_GROUP"
         
+        # Disable Oryx build
+        az webapp config appsettings set \
+          --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
+          --resource-group "$RESOURCE_GROUP" \
+          --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                    WEBSITE_RUN_FROM_PACKAGE=0 \
+                    ENABLE_ORYX_BUILD=false || true
+        
+        # Stop and restart to clear any locks
         az webapp stop --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
           --resource-group "$RESOURCE_GROUP" || true
         sleep 5
