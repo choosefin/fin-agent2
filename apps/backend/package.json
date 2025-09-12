@@ -28,6 +28,7 @@
     "@supabase/supabase-js": "^2.45.0",
     "dotenv": "^16.4.0",
     "fastify": "^4.28.0",
+    "groq-sdk": "^0.32.0",
     "jsonwebtoken": "^9.0.2",
     "motia": "^0.6.4-beta.130",
     "openai": "^5.20.1",
