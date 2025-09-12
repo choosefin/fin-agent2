@@ -155,7 +155,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           // Compile results into a single message
           const compiledResults = event.data.results?.map((r) => 
             `**${r.agent.toUpperCase()} AGENT:**\n${r.result}`
-          ).join('\n\n---\n\n');
+          ).join('\n\n---\n\n') || 'No results available';
           
           const resultMessage: Message = {
             id: (Date.now() + 1).toString(),
