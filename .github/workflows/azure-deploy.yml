@@ -5,11 +5,8 @@ on:
     branches:
       - main
       - master
-  pull_request:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
+  # Remove pull_request trigger - we don't want to deploy on PRs
+  workflow_dispatch:  # Manual trigger for emergency deployments
 
 env:
   AZURE_WEBAPP_NAME_BACKEND: finagent-backend-pps457j4wjrc6
