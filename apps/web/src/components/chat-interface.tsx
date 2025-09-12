@@ -82,7 +82,8 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
   };
 
   const defaultMessageHandler = async (message: string): Promise<string> => {
-    const response = await fetch('/api/chat', {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const response = await fetch(`${apiUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,6 +91,7 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
       body: JSON.stringify({
         message,
         assistantType: assistant.id,
+        userId: 'user-' + Date.now(), // Temporary user ID
       }),
     });
 

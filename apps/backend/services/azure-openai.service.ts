@@ -3,6 +3,10 @@ import type {
   ChatCompletionCreateParams,
   ChatCompletion 
 } from 'openai/resources/chat/completions';
+import { config as dotenvConfig } from 'dotenv';
+
+// Load environment variables
+dotenvConfig({ path: '.env.local' });
 
 /**
  * Azure OpenAI Service Wrapper
@@ -19,7 +23,7 @@ export class AzureOpenAIService {
     this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'model-router';
     const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2025-01-01-preview';
     
-    if (!endpoint || !apiKey) {
+    if (!endpoint || !apiKey || apiKey === 'your-azure-api-key-here') {
       console.warn('Azure OpenAI credentials not configured. AI features will be limited.');
       // Create a dummy client to prevent crashes
       this.client = new OpenAI({
@@ -137,7 +141,7 @@ export class AzureOpenAIService {
   isConfigured(): boolean {
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
     const apiKey = process.env.AZURE_OPENAI_API_KEY;
-    return !!(endpoint && apiKey);
+    return !!(endpoint && apiKey && apiKey !== 'your-azure-api-key-here');
   }
   
   /**
