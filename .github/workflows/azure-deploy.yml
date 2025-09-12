@@ -255,7 +255,7 @@ jobs:
                 cd deploy-package
                 
                 # Use Node.js to create a proper node_modules structure
-                cat > fix-modules.js << 'EOF'
+                cat > fix-modules.js << 'FIXMODULES_EOF'
 const fs = require('fs');
 const path = require('path');
 
@@ -272,13 +272,13 @@ packages.forEach(pkg => {
     if (pkgDir) {
       const sourcePath = path.join(pnpmDir, pkgDir, 'node_modules', pkg);
       if (fs.existsSync(sourcePath)) {
-        console.log(`Copying ${pkg} from pnpm structure...`);
-        fs.cpSync(sourcePath, targetPath, { recursive: true });
+        console.log('Copying ' + pkg + ' from pnpm structure...');
+        fs.cpSync(sourcePath, targetPath, {recursive: true});
       }
     }
   }
 });
-EOF
+FIXMODULES_EOF
                 node fix-modules.js || echo "Failed to fix modules structure"
                 rm -f fix-modules.js
                 cd ..
