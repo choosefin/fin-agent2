@@ -10,8 +10,9 @@ You are helping develop a **Motia project** - a unified backend framework that u
 - **API Steps**: HTTP endpoints (`type: 'api'`)
 - **Event Steps**: Event processors (`type: 'event'`)
 - **Cron Steps**: Scheduled tasks (`type: 'cron'`)
-- **Stream Steps**: Real-time data (`type: 'stream'`)
 - **NOOP Steps**: Workflow routing (`type: 'noop'`)
+
+**⚠️ IMPORTANT LIMITATION**: Stream Steps (`type: 'stream'`) are NOT supported in the current Motia version
 
 ### Event-Driven Communication
 
@@ -294,6 +295,29 @@ def generate_html_template(data)
   HTML
 end
 ```
+
+## ⚠️ CRITICAL: Motia Streaming Limitations
+
+### What Does NOT Work
+- **ReadableStream from API handlers**: Motia converts ReadableStream objects to `{}` - SSE/streaming responses are NOT supported
+- **Stream step type**: The `type: 'stream'` configuration is not recognized
+- **WebSocket streams context**: The `streams` context in handlers appears broken/unimplemented
+
+### Confirmed After Extensive Testing
+1. API handlers returning `ReadableStream` with SSE headers → Returns empty object `{}`
+2. WebSocket stream context (`streams.set()`) → Throws "not a function" errors
+3. Any attempt at real-time streaming from Motia steps → Not supported
+
+### Recommended Approach for Real-time Features
+- **Use polling**: Return workflow/session IDs and poll status endpoints
+- **External streaming server**: Run separate Express/Fastify server for SSE/WebSocket
+- **State-based updates**: Store updates in Motia state, retrieve via API calls
+
+### What DOES Work
+- Event-driven architecture with `emit()` and `subscribes`
+- Multi-step workflows via event chains
+- State management for storing progress/results
+- Standard REST API responses
 
 ## Development Commands
 
