@@ -232,17 +232,16 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
       // Trigger the next agent in sequence
       const nextStep = workflow.steps[stepIndex + 1];
       
+      // Emit the next agent without the 'type' field (not needed for internal events)
       await emit({
-        topic: 'workflow.agent.started',
+        topic: 'workflow.agent.started' as any,
         data: {
-          type: 'workflow.agent.started',
           workflowId,
-          userId: workflow.userId,
           stepIndex: stepIndex + 1,
           agent: nextStep.agent,
           task: nextStep.task,
         },
-      });
+      } as any);
       
       // Update workflow state for next step
       await state.set('workflows', `${workflowId}:step:${stepIndex + 1}`, {

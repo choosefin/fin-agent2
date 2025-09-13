@@ -2,19 +2,34 @@ import type { EventConfig, Handlers } from 'motia';
 import { z } from 'zod';
 import { sseManager } from '../services/sse-manager.service';
 
-// Generic workflow event schema - flexible to handle all event types
+// Since SSE broadcaster handles multiple event types with different schemas,
+// we need a permissive schema that can accept all workflow event shapes
 const workflowEventSchema = z.object({
+  // Common fields
   workflowId: z.string().optional(),
-  userId: z.string().optional(), 
+  userId: z.string().optional(),
   type: z.string().optional(),
-}).passthrough(); // Allow any additional fields
+  
+  // Agent-specific fields (for workflow.agent.started/completed/progress)
+  stepIndex: z.number().optional(),
+  agent: z.string().optional(),
+  task: z.string().optional(),
+  
+  // Other potential fields
+  data: z.any().optional(),
+  results: z.any().optional(),
+  message: z.string().optional(),
+  progress: z.number().optional(),
+  error: z.string().optional(),
+  timestamp: z.string().optional(),
+}).passthrough() // Allow any additional fields
 
 export const config: EventConfig = {
   type: 'event',
   name: 'SSEBroadcaster',
   subscribes: [
     'workflow.started',
-    'workflow.agent.started', 
+    // Don't subscribe to workflow.agent.started - AgentExecutor handles that
     'workflow.agent.progress',
     'workflow.agent.completed',
     'workflow.completed',
