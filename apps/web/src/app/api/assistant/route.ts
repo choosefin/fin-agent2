@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Log the request details
-    console.log('Test API called with:', body);
+    console.log('Assistant API called with:', body);
     console.log('Backend URL:', process.env.NEXT_PUBLIC_API_URL);
     
     // Detect if this should trigger a workflow
