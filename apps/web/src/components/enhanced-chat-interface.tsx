@@ -192,7 +192,6 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
   }, [handleWorkflowEvent]);
 
   const pollWorkflowResults = async (workflowId: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
     const maxAttempts = 60; // Poll for up to 60 seconds
     let attempts = 0;
     
@@ -200,7 +199,8 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
       attempts++;
       
       try {
-        const response = await fetch(`${apiUrl}/api/workflow/${workflowId}/result`);
+        // Use proxy route instead of direct backend call
+        const response = await fetch(`/api/workflow/${workflowId}/result`);
         const data = await response.json();
         
         if (data.status === 'completed') {
