@@ -4,8 +4,9 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ workflowId: string }> }
 ) {
+  const { workflowId } = await params;
+  
   try {
-    const { workflowId } = await params;
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
     
     // Forward to backend
@@ -29,7 +30,7 @@ export async function GET(
     
     // Return a mock response if backend is not available
     return NextResponse.json({
-      workflowId: params.workflowId,
+      workflowId,
       status: 'processing',
       progress: {
         completed: 0,
