@@ -42,11 +42,11 @@ export function PlaidConnect({ onSuccess, onExit }: PlaidConnectProps) {
     }
   };
 
-  // Check if we're using a mock token
+  // Check if we're using a mock token (not a real sandbox token)
   const isMockToken = linkToken?.startsWith('link-sandbox-mock-');
   
   const { open, ready } = usePlaidLink({
-    token: (!isMockToken && linkToken) || null,
+    token: linkToken,
     onSuccess: async (publicToken, metadata) => {
       try {
         const response = await fetch('/api/plaid/exchange-token', {
@@ -100,7 +100,7 @@ export function PlaidConnect({ onSuccess, onExit }: PlaidConnectProps) {
     );
   }
 
-  // Show mock UI if using mock token
+  // Show mock UI only if using mock token
   if (isMockToken) {
     return (
       <div className="flex flex-col gap-2">
