@@ -1,4 +1,4 @@
-import type { ApiRouteConfig, Handlers } from '@motia/core'
+import type { ApiRouteConfig, Handlers } from 'motia'
 import { z } from 'zod'
 import { LLMService } from '../services/llm-service'
 import { WorkflowDetector } from '../services/workflow-detector'
@@ -25,7 +25,7 @@ export const config: ApiRouteConfig = {
   ],
 }
 
-export const handler: Handlers['ChatStream'] = async (req, { logger, emit, state, traceId }) => {
+export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, state, traceId }: any) => {
   const { message, assistantType = 'general', userId, context } = req.body
   
   try {
@@ -119,13 +119,13 @@ export const handler: Handlers['ChatStream'] = async (req, { logger, emit, state
       }
     }
   } catch (error) {
-    logger.error('Error in chat stream', { error: error.message, traceId })
+    logger.error('Error in chat stream', { error: error instanceof Error ? error.message : 'Unknown error', traceId })
     
     return {
       status: 500,
       body: {
         error: 'An error occurred processing your request',
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
     }
   }

@@ -15,7 +15,7 @@ declare module 'motia' {
     'WorkflowStream': ApiRouteHandler<Record<string, unknown>, unknown, never>
     'WorkflowStatus': ApiRouteHandler<Record<string, unknown>, unknown, never>
     'WorkflowResult': ApiRouteHandler<Record<string, unknown>, unknown, never>
-    'WorkflowOrchestrator': ApiRouteHandler<{ message: string; userId: string; context?: { symbols?: string[]; timeframe?: string; riskTolerance?: 'conservative' | 'moderate' | 'aggressive' } }, unknown, { topic: 'workflow.agent.started'; data: { workflowId: string; stepIndex: number; agent: string; task: string } }>
+    'WorkflowOrchestrator': ApiRouteHandler<{ message: string; userId: string; context?: { symbols?: string[]; timeframe?: string; riskTolerance?: 'conservative' | 'moderate' | 'aggressive' } }, unknown, { topic: 'workflow.started'; data: { workflowId?: string; userId?: string; type?: string } } | { topic: 'workflow.agent.started'; data: never } | { topic: 'workflow.agent.completed'; data: { workflowId?: string; userId?: string; type?: string } } | { topic: 'workflow.completed'; data: { workflowId?: string; userId?: string; type?: string } }>
     'StateAuditJob': CronHandler<{ topic: 'notification'; data: { templateId: string; email: string; templateData: Record<string, unknown> } }>
     'ProcessFoodOrder': EventHandler<{ email: string; quantity: number; petId: number }, { topic: 'notification'; data: { templateId: string; email: string; templateData: Record<string, unknown> } }>
     'CreatePlaidLinkToken': ApiRouteHandler<{ userId: string }, unknown, never>
@@ -24,7 +24,9 @@ declare module 'motia' {
     'GetMarketData': ApiRouteHandler<{ symbol: string; dataType: 'quote' | 'historical' | 'options' | 'sentiment' | 'news'; timeframe?: string; startDate?: string; endDate?: string }, unknown, never>
     'HealthCheck': ApiRouteHandler<Record<string, unknown>, unknown, never>
     'ChatWithAgent': ApiRouteHandler<{ message: string; assistantType: 'general' | 'analyst' | 'trader' | 'advisor' | 'riskManager' | 'economist'; userId: string; symbols?: string[] }, unknown, never>
+    'ChatStream': ApiRouteHandler<{ message: string; assistantType?: string; userId: string; context?: { symbols?: string[]; timeframe?: string; riskTolerance?: string } }, unknown, never>
     'ApiTrigger': ApiRouteHandler<{ pet: { name: string; photoUrl: string }; foodOrder?: { id: string; quantity: number } }, ApiResponse<200, { id: number; name: string; photoUrl: string }>, { topic: 'process-food-order'; data: { email: string; quantity: number; petId: number } }>
-    'AgentExecutor': EventHandler<{ workflowId: string; stepIndex: number; agent: string; task: string }, { topic: 'workflow.agent.started'; data: { workflowId: string; stepIndex: number; agent: string; task: string } }>
+    'AgentExecutor': EventHandler<{ workflowId: string; stepIndex: number; agent: string; task: string }, { topic: 'workflow.agent.completed'; data: { workflowId?: string; userId?: string; type?: string } } | { topic: 'workflow.agent.progress'; data: { workflowId?: string; userId?: string; type?: string } } | { topic: 'workflow.completed'; data: { workflowId?: string; userId?: string; type?: string } } | { topic: 'workflow.agent.started'; data: never }>
+    'SSEBroadcaster': EventHandler<{ workflowId?: string; userId?: string; type?: string }, never>
   }
 }

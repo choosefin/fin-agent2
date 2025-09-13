@@ -1,0 +1,46 @@
+
+> backend@1.0.0 build
+> motia build
+
+Groq service initialized successfully with Llama models
+Using local secrets storage (development mode)
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+Rate limiting using memory store
+Groq service initialized successfully with Llama models
+Using local secrets storage (development mode)
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-stream.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-status.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-result.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-orchestrator.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Cron)[39m [1m[36msteps/state-audit-cron.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/sse-broadcaster.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/process-food-order.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/plaid-link.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/plaid-exchange.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/notification.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/market-data.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/health.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/chat.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/chat-stream.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/api.step.ts[39m[22m
+[33m➜ [BUILDING][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/agent-executor.step.ts[39m[22m
+[14A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-result.step.ts[39m[22m [90m3kb[39m
+[13B[5A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/health.step.ts[39m[22m [90m2kb[39m
+[4B[12A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Cron)[39m [1m[36msteps/state-audit-cron.step.ts[39m[22m [90m2kb[39m
+[11B[15A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-status.step.ts[39m[22m [90m3kb[39m
+[14B[16A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-stream.step.ts[39m[22m [90m6kb[39m
+[15B[7A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/notification.step.ts[39m[22m [90m55kb[39m
+[6B[10A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/process-food-order.step.ts[39m[22m [90m56kb[39m
+[9B[13A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/workflow-orchestrator.step.ts[39m[22m [90m59kb[39m
+[12B[11A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/sse-broadcaster.step.ts[39m[22m [90m58kb[39m
+[10B[2A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/api.step.ts[39m[22m [90m440kb[39m
+[1B[3A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/chat-stream.step.ts[39m[22m [90m664kb[39m
+[2B[6A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/market-data.step.ts[39m[22m [90m890kb[39m
+[5B[9A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/plaid-link.step.ts[39m[22m [90m943kb[39m
+[8B[8A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/plaid-exchange.step.ts[39m[22m [90m943kb[39m
+[7B[4A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(API)[39m [1m[36msteps/chat.step.ts[39m[22m [90m3mb[39m
+[3B[1A[2K[32m✓ [BUILT][39m [1m[35mStep[39m[22m [1m[32mNode[39m[22m [90m(Event)[39m [1m[36msteps/agent-executor.step.ts[39m[22m [90m3mb[39m
+[1m[35mRouter[39m[22m [33m➜ [BUILDING][39m [1m[32mNode[39m[22m [1m[36mrouter-node.zip[39m[22m
+[1A[2K[32m✓ [BUILT][39m [1m[35mRouter[39m[22m [1m[32mNode[39m[22m [1m[36mrouter-node.zip[39m[22m [90m4mb[39m
+[32m✓ [SUCCESS][39m Build completed

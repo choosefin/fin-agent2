@@ -1,0 +1,49 @@
+
+> backend@1.0.0 dev /Users/brian/Public/general-repos/fin/finagent2/apps/backend
+> motia dev
+
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/workflow-stream.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/workflow-status.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/workflow-result.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/workflow-orchestrator.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[34mFlow[39m[22m [1m[36mbasic-tutorial[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(Cron)[39m [1m[36msteps/state-audit-cron.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(Event)[39m [1m[36msteps/process-food-order.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[34mFlow[39m[22m [1m[36mplaid-integration[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/plaid-link.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/plaid-exchange.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(Event)[39m [1m[36msteps/notification.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[34mFlow[39m[22m [1m[36mmarket-analysis[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/market-data.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/health.step.ts[39m[22m created
+Groq service initialized successfully with Llama models
+Using local secrets storage (development mode)
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/chat.step.ts[39m[22m created
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/chat-stream.step.ts[39m[22m created
+Rate limiting using memory store
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/api.step.ts[39m[22m created
+Groq service initialized successfully with Llama models
+Using local secrets storage (development mode)
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+[32m➜ [CREATED][39m [1m[35mStep[39m[22m [90m(Event)[39m [1m[36msteps/agent-executor.step.ts[39m[22m created
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/workflow-orchestrator.step.ts[39m[22m emits to [33mworkflow.started[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/workflow-orchestrator.step.ts[39m[22m emits to [33mworkflow.agent.completed[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/workflow-orchestrator.step.ts[39m[22m emits to [33mworkflow.completed[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/plaid-link.step.ts[39m[22m emits to [33mplaid.link.created[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/plaid-exchange.step.ts[39m[22m emits to [33mplaid.token.exchanged[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/plaid-exchange.step.ts[39m[22m emits to [33mplaid.accounts.connected[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/market-data.step.ts[39m[22m emits to [33mmarket.data.fetched[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/chat-stream.step.ts[39m[22m emits to [33mchat.started[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/chat-stream.step.ts[39m[22m emits to [33mworkflow.trigger[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(API)[39m [1m[36msteps/chat-stream.step.ts[39m[22m emits to [33mchat.completed[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(Event)[39m [1m[36msteps/agent-executor.step.ts[39m[22m emits to [33mworkflow.agent.completed[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(Event)[39m [1m[36msteps/agent-executor.step.ts[39m[22m emits to [33mworkflow.agent.progress[39m, but there is no subscriber defined
+[33m[WARNING][39m [1m[35mStep[39m[22m [90m(Event)[39m [1m[36msteps/agent-executor.step.ts[39m[22m emits to [33mworkflow.completed[39m, but there is no subscriber defined
+🚀 Server ready and listening on port 3000
+🔗 Open http://localhost:3000 to open workbench 🛠️
+[90m[10:08:39 AM][39m [90mW5ENB-2519055[39m [34m[INFO][39m [1m[36mWorkflowStream[39m[22m Starting SSE stream for workflow events
+[90m[10:08:42 AM][39m [90mR1T4C-2522312[39m [34m[INFO][39m [1m[36mWorkflowStream[39m[22m Starting SSE stream for workflow events
+[90m[10:08:45 AM][39m [90mDRSNY-2525466[39m [34m[INFO][39m [1m[36mWorkflowStream[39m[22m Starting SSE stream for workflow events
+[90m[10:08:48 AM][39m [90m38JVZ-2528628[39m [34m[INFO][39m [1m[36mWorkflowStream[39m[22m Starting SSE stream for workflow events
+[90m[10:08:51 AM][39m [90m5Z6ZF-2531792[39m [34m[INFO][39m [1m[36mWorkflowStream[39m[22m Starting SSE stream for workflow events
