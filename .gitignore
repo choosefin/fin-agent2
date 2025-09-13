@@ -6,7 +6,7 @@ venv
 .mermaid
 dist
 *.pyc
-.env.*
+.env*
 
 .turbo
 
