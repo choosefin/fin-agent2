@@ -152,7 +152,7 @@ export function StreamlinedChatInterface({ assistant }: StreamlinedChatInterface
         case 'workflow.completed':
           // Add compiled results message
           const results = data.data.results || [];
-          const compiledMessage = results.map((r: any) => 
+          const compiledMessage = results.map((r: { agent: string; result: string }) => 
             `**${r.agent.toUpperCase()} Analysis:**\n\n${r.result}`
           ).join('\n\n---\n\n');
 

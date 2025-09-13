@@ -145,7 +145,7 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
       } else if (data.triggered === false) {
         // Workflow detection returned false, show suggestions
         return data.message + '\n\nTry prompts like:\n' + 
-          data.suggestions?.map((s: any) => `• "${s.samplePrompts[0]}"`).join('\n');
+          data.suggestions?.map((s: { samplePrompts: string[] }) => `• "${s.samplePrompts[0]}"`).join('\n');
       }
       
       return data.response;

@@ -51,7 +51,7 @@ interface EnhancedChatInterfaceProps {
   onSendMessage?: (message: string) => Promise<ChatResponse>;
 }
 
-export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChatInterfaceProps) {
+export function EnhancedChatInterface({ assistant }: EnhancedChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -192,7 +192,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
   }, [handleWorkflowEvent]);
 
   const pollWorkflowResults = async (workflowId: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    // const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'; // Not used in proxy route
     const maxAttempts = 60; // Poll for up to 60 seconds
     let attempts = 0;
 
@@ -242,6 +242,8 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     }, 1000); // Poll every second
   };
 
+  // Unused function - commented out to avoid build warnings
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const triggerWorkflow = async (message: string) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -323,7 +325,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           const workflow: ActiveWorkflow = {
             workflowId: data.workflowId,
             name: data.workflow.name,
-            steps: data.workflow.steps.map((step: any, index: number) => ({
+            steps: data.workflow.steps.map((step: { agent: string; task: string }, index: number) => ({
               index,
               agent: step.agent,
               task: step.task,
@@ -346,7 +348,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: data.message + '\n\nTry prompts like:\n' +
-            data.suggestions?.map((s: any) => `• "${s.samplePrompts[0]}"`).join('\n'),
+            data.suggestions?.map((s: { samplePrompts: string[] }) => `• "${s.samplePrompts[0]}"`).join('\n'),
           timestamp: new Date(),
           assistantType: assistant.id,
         };
@@ -378,6 +380,8 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     }
   };
 
+  // Unused function - commented out to avoid build warnings
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const defaultMessageHandler = async (message: string): Promise<ChatResponse> => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const response = await fetch(`${apiUrl}/api/chat`, {

@@ -32,7 +32,7 @@ interface AgentStatusPanelProps {
   onClose?: () => void;
 }
 
-const agentIcons: Record<string, React.FC<any>> = {
+const agentIcons: Record<string, React.ComponentType> = {
   analyst: Brain,
   trader: TrendingUp,
   advisor: DollarSign,
@@ -51,8 +51,8 @@ const agentColors: Record<string, string> = {
 export function AgentStatusPanel({ 
   agents, 
   workflowId, 
-  estimatedTime,
-  onClose 
+  estimatedTime
+  // onClose is optional and not used internally
 }: AgentStatusPanelProps) {
   const completedCount = agents.filter(a => a.status === 'completed').length;
   const totalCount = agents.length;

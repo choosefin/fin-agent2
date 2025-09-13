@@ -127,7 +127,7 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
           // Add compiled results message
           if (data.workflowId === activeWorkflow?.workflowId) {
             const results = data.results || [];
-            const compiledMessage = results.map((r: any) => 
+            const compiledMessage = results.map((r: { agent: string; result: string }) => 
               `**${r.agent.toUpperCase()} Analysis:**\n\n${r.result}`
             ).join('\n\n---\n\n');
 
