@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { ApiRouteConfig, Handlers } from 'motia';
 
 export const config: ApiRouteConfig = {
@@ -9,29 +8,43 @@ export const config: ApiRouteConfig = {
   emits: [],
 };
 
-export const handler: Handlers['WorkflowStream'] = async (req, { logger, state, traceId }) => {
+export const handler: Handlers['WorkflowStream'] = async (_req, { logger, streams, traceId }) => {
   try {
-    logger.info('Starting SSE stream for workflow events', { traceId });
+    logger.info('Initializing workflow stream', { traceId });
 
-    // Set SSE headers
-    const headers = {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'X-Accel-Buffering': 'no', // Disable nginx buffering
-    };
-
-    // Create SSE response
-    // Note: This is a simplified implementation
-    // In production, you'd need proper SSE handling with event listeners
-    return {
-      status: 200,
-      headers,
-      body: 'data: {"type":"connected","message":"SSE stream connected"}\n\n',
-    };
+    // Initialize Motia's WebSocket stream for workflow updates
+    // The client will connect to ws://localhost:3000/streams/workflow
+    if (streams && streams.workflow) {
+      // Set initial connection state
+      await streams.workflow.set({
+        type: 'connected',
+        message: 'Workflow stream connected',
+        timestamp: new Date().toISOString(),
+      });
+      
+      logger.info('Workflow stream initialized', { traceId });
+      
+      return {
+        status: 200,
+        body: {
+          success: true,
+          message: 'Workflow stream initialized',
+          streamUrl: 'ws://localhost:3000/streams/workflow',
+        },
+      };
+    } else {
+      // If streams are not available, return error
+      return {
+        status: 503,
+        body: {
+          error: 'Streaming not available',
+          message: 'WebSocket streams are not configured',
+        },
+      };
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Failed to initialize SSE stream', {
+    logger.error('Failed to initialize workflow stream', {
       error: errorMessage,
       traceId
     });
@@ -39,7 +52,7 @@ export const handler: Handlers['WorkflowStream'] = async (req, { logger, state, 
     return {
       status: 500,
       body: {
-        error: 'Failed to initialize SSE stream',
+        error: 'Failed to initialize workflow stream',
         message: errorMessage,
       },
     };

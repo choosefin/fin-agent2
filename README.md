@@ -84,6 +84,8 @@ finagent2/
 - **Mastra AI Integration**: Powerful agent orchestration with tools and workflows
 - **Azure OpenAI Service**: GPT-4 powered analysis and recommendations
 - **Intelligent Tools**: Market data fetching, Plaid integration, portfolio analysis
+- **Multi-Agent Workflows**: ✅ Working - Sequential agent execution with event-driven orchestration
+- **Real-time Streaming**: ❌ Not working - Blocked by Motia framework limitations (use polling instead)
 
 ### 📊 Trading & Market Analysis
 - **Market Data API**: Real-time and historical data via dedicated API endpoints
@@ -232,11 +234,19 @@ pnpm test --filter=web
 The Motia backend provides the following API endpoints:
 
 ### Core APIs
-- `POST /api/chat` - Chat with AI assistants
+- `POST /api/chat` - Chat with AI assistants (non-streaming)
+- `POST /api/chat/stream` - ⚠️ **Non-functional** - Returns `{}` due to Motia limitations
+- `GET /api/workflow/status` - Get workflow execution status
+- `POST /api/workflow/trigger` - Trigger multi-agent workflow
 - `POST /api/market-data` - Fetch market data for symbols
 - `POST /api/plaid/link` - Initialize Plaid Link
 - `POST /api/plaid/exchange` - Exchange Plaid public token
 - `POST /basic-tutorial` - Legacy tutorial endpoint
+
+### ⚠️ Known Limitations
+- **No Real-time Streaming**: Motia does not support SSE or WebSocket streaming
+- **ReadableStream Not Supported**: API handlers cannot return streaming responses
+- **Workaround**: Use polling with workflow/session IDs for updates
 
 ### Security Features
 - JWT authentication middleware

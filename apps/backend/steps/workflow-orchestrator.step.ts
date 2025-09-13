@@ -180,11 +180,12 @@ export const handler: Handlers['WorkflowOrchestrator'] = async (req, { logger, e
     await emit({
       topic: 'workflow.started',
       data: {
+        type: 'workflow.started',
         workflowId: workflowInstanceId,
+        userId,
         name: workflow.name,
         agents: workflow.agents,
         steps: workflow.steps,
-        userId,
         message,
       },
     });

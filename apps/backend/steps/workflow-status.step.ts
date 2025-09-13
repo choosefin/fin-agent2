@@ -31,16 +31,26 @@ export const handler: Handlers['WorkflowStatus'] = async (req, { logger, state, 
       };
     }
 
+    // Get agents from workflow (it can be either 'agents' or 'steps')
+    const agents = workflow.agents || workflow.steps || [];
+    const totalSteps = agents.length;
+    
     // Get all step statuses
     const stepStatuses = [];
-    for (let i = 0; i < workflow.steps.length; i++) {
+    for (let i = 0; i < totalSteps; i++) {
       const stepData: any = await state.get('workflows', `${workflowId}:step:${i}`);
       const resultData: any = await state.get('workflows', `${workflowId}:result:${i}`);
       
+      // Handle both agent string array and step object array
+      const agentName = typeof agents[i] === 'string' ? agents[i] : agents[i].agent;
+      const agentTask = typeof agents[i] === 'string' 
+        ? `Process with ${agents[i]}` 
+        : agents[i].task || `Process with ${agents[i].agent}`;
+      
       stepStatuses.push({
         index: i,
-        agent: workflow.steps[i].agent,
-        task: workflow.steps[i].task,
+        agent: agentName,
+        task: agentTask,
         status: resultData ? 'completed' : stepData ? 'processing' : 'pending',
         result: resultData?.result,
         startedAt: stepData?.startedAt,
@@ -53,7 +63,7 @@ export const handler: Handlers['WorkflowStatus'] = async (req, { logger, state, 
     const processingSteps = stepStatuses.filter(s => s.status === 'processing').length;
     
     let overallStatus = 'pending';
-    if (completedSteps === workflow.steps.length) {
+    if (completedSteps === totalSteps) {
       overallStatus = 'completed';
     } else if (processingSteps > 0 || completedSteps > 0) {
       overallStatus = 'processing';
@@ -67,8 +77,8 @@ export const handler: Handlers['WorkflowStatus'] = async (req, { logger, state, 
         status: overallStatus,
         progress: {
           completed: completedSteps,
-          total: workflow.steps.length,
-          percentage: Math.round((completedSteps / workflow.steps.length) * 100),
+          total: totalSteps,
+          percentage: Math.round((completedSteps / totalSteps) * 100),
         },
         steps: stepStatuses,
         startedAt: workflow.startedAt,

@@ -23,29 +23,33 @@ export const config: EventConfig = {
 // Simulate agent thinking process with intermediate updates
 async function* processAgentTask(
   agent: string,
-  task: string,
-  context: any,
+  _task: string,
+  _context: any,
   emit: any,
-  workflowId: string
+  workflowId: string,
+  userId?: string
 ): AsyncGenerator<string> {
   const steps = [
-    `Analyzing task requirements...`,
-    `Gathering relevant data...`,
-    `Applying ${agent} expertise...`,
-    `Formulating insights...`,
-    `Preparing recommendations...`,
+    { message: `Analyzing task requirements...`, progress: 20 },
+    { message: `Gathering relevant data...`, progress: 40 },
+    { message: `Applying ${agent} expertise...`, progress: 60 },
+    { message: `Formulating insights...`, progress: 80 },
+    { message: `Preparing recommendations...`, progress: 95 },
   ];
 
   for (const step of steps) {
-    yield step;
+    yield step.message;
     
-    // Emit progress update
+    // Emit progress update with SSE support
     await emit({
       topic: 'workflow.agent.progress',
       data: {
+        type: 'workflow.agent.progress',
         workflowId,
+        userId,
         agent,
-        status: step,
+        message: step.message,
+        progress: step.progress,
         timestamp: new Date().toISOString(),
       },
     });
@@ -142,6 +146,7 @@ Provide a focused response addressing your specific task from your agent perspec
 
 export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, state, traceId }) => {
   const { workflowId, stepIndex, agent, task } = input;
+  let workflow: any = null;
   
   try {
     logger.info('Agent executor started', { 
@@ -153,7 +158,7 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     });
 
     // Get workflow state
-    const workflow: any = await state.get('workflows', workflowId);
+    workflow = await state.get('workflows', workflowId);
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
     }
@@ -161,11 +166,26 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     // Get previous results for context
     const previousResults = workflow.results || [];
 
+    // Log that agent is processing
+    logger.info('Agent processing started', {
+      agent,
+      task,
+      stepIndex,
+      message: `${agent} is analyzing...`,
+    });
+
     // Simulate agent processing with progress updates
-    const progressGenerator = processAgentTask(agent, task, workflow.context, emit, workflowId);
+    const progressGenerator = processAgentTask(agent, task, workflow.context, emit, workflowId, workflow.userId);
     
     for await (const progress of progressGenerator) {
       logger.info(`Agent ${agent} progress: ${progress}`);
+      
+      // Log progress update
+      logger.debug('Agent progress update', {
+        agent,
+        stepIndex,
+        message: progress,
+      });
     }
 
     // Call LLM for actual agent response
@@ -195,11 +215,21 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
       lastUpdated: new Date().toISOString(),
     });
 
+    // Log agent completion
+    logger.info('Agent completed', {
+      agent,
+      stepIndex,
+      totalSteps: workflow.steps?.length || workflow.agents?.length || 1,
+      completedSteps: stepIndex + 1,
+    });
+
     // Emit agent completed event
     await emit({
       topic: 'workflow.agent.completed' as any,
       data: {
+        type: 'workflow.agent.completed',
         workflowId,
+        userId: workflow.userId,
         stepIndex,
         agent,
         task,
@@ -209,29 +239,49 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     } as any);
 
     // Check if this was the last agent or trigger the next one
-    if (stepIndex === workflow.steps.length - 1) {
+    const totalSteps = workflow.steps?.length || workflow.agents?.length || 1;
+    if (stepIndex >= totalSteps - 1) {
       // This was the last agent - workflow complete
+      logger.info('Workflow completed', {
+        workflowId,
+        resultsCount: updatedResults.length,
+        message: 'Multi-agent analysis complete',
+      });
       await emit({
         topic: 'workflow.completed' as any,
         data: {
+          type: 'workflow.completed',
           workflowId,
+          userId: workflow.userId,
           results: updatedResults,
           completedAt: new Date().toISOString(),
         },
       } as any);
     } else {
       // Trigger the next agent in sequence
-      const nextStep = workflow.steps[stepIndex + 1];
+      const nextStep = workflow.steps?.[stepIndex + 1] || workflow.agents?.[stepIndex + 1];
+      const nextAgent = typeof nextStep === 'string' ? nextStep : nextStep?.agent;
+      const nextTask = typeof nextStep === 'string' ? `Process with ${nextStep}` : nextStep?.task;
       
+      // Log next agent starting
+      logger.info('Starting next agent', {
+        agent: nextAgent,
+        task: nextTask,
+        stepIndex: stepIndex + 1,
+        totalSteps,
+        message: `Starting ${nextAgent}...`,
+      });
+      
+      // Emit the next agent without the 'type' field (not needed for internal events)
       await emit({
-        topic: 'workflow.agent.started',
+        topic: 'workflow.agent.started' as any,
         data: {
           workflowId,
           stepIndex: stepIndex + 1,
-          agent: nextStep.agent,
-          task: nextStep.task,
+          agent: nextAgent,
+          task: nextTask,
         },
-      });
+      } as any);
       
       // Update workflow state for next step
       await state.set('workflows', `${workflowId}:step:${stepIndex + 1}`, {
@@ -261,7 +311,9 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     await emit({
       topic: 'workflow.agent.completed' as any,
       data: {
+        type: 'workflow.agent.completed',
         workflowId,
+        userId: workflow?.userId,
         stepIndex,
         agent,
         task,

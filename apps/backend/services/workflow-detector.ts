@@ -10,6 +10,8 @@ export class WorkflowDetector {
     { pattern: /market.*(?:trend|outlook|forecast)/i, agents: ['analyst', 'economist', 'advisor'] },
     
     // Trading triggers
+    { pattern: /(?:find|identify|discover).*trading.*opportunit/i, agents: ['trader', 'analyst', 'economist'] },
+    { pattern: /trading.*opportunit/i, agents: ['trader', 'analyst', 'economist'] },
     { pattern: /(?:trade|trading).*strategy/i, agents: ['trader', 'analyst', 'riskManager'] },
     { pattern: /(?:technical|fundamental).*analysis/i, agents: ['analyst', 'trader', 'advisor'] },
     
