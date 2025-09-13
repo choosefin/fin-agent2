@@ -1,0 +1,49 @@
+name: Validate PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  type-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, backend]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: |
+          cd apps/${{ matrix.app }}
+          npm ci
+          
+      - name: Run TypeScript check
+        run: |
+          cd apps/${{ matrix.app }}
+          npx tsc --noEmit
+          
+      - name: Run ESLint
+        run: |
+          cd apps/${{ matrix.app }}
+          npm run lint
+          
+      - name: Post results as comment
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('build.log', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Build Failed for ${{ matrix.app }}\n\`\`\`\n${output}\n\`\`\``
+            });

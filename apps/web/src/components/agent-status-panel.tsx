@@ -32,7 +32,7 @@ interface AgentStatusPanelProps {
   onClose?: () => void;
 }
 
-const agentIcons: Record<string, React.ComponentType> = {
+const agentIcons: Record<string, React.FC<{ className?: string }>> = {
   analyst: Brain,
   trader: TrendingUp,
   advisor: DollarSign,
