@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 export const config: EventRouteConfig = {
   type: 'event',
-  name: 'WorkflowWebSocketRelay',
+  name: 'WorkflowWSRelay',
   subscribes: [
     'workflow.started',
     'workflow.agent.started',
@@ -15,7 +15,7 @@ export const config: EventRouteConfig = {
   input: z.object({
     workflowId: z.string(),
     userId: z.string().optional(),
-    streamId: z.string().optional(), // WebSocket stream ID
+    streamKey: z.string().optional(), // WebSocket stream key
     type: z.string().optional(),
     stepIndex: z.number().optional(),
     agent: z.string().optional(),
@@ -27,41 +27,53 @@ export const config: EventRouteConfig = {
     error: z.string().optional(),
     timestamp: z.string().optional(),
   }),
+  emits: [],
 }
 
-export const handler: Handlers['WorkflowWebSocketRelay'] = async (event, { logger, streams }) => {
-  const { workflowId, streamId, type, ...eventData } = event
+export const handler: Handlers['WorkflowWSRelay'] = async (event, { logger, streams }) => {
+  const { workflowId, streamKey, type, ...eventData } = event
 
   try {
-    // If we have a specific stream ID, send to that stream
-    if (streamId && streams[streamId]) {
-      logger.info('Relaying workflow event to WebSocket stream', { 
-        workflowId, 
-        streamId, 
-        eventType: type 
-      })
+    // Check if streams are available
+    if (!streams) {
+      logger.warn('Streams context not available for workflow relay')
+      return
+    }
 
-      // Send the workflow update to the specific WebSocket connection
-      await streams[streamId].send({
+    // Determine which stream to use
+    const targetStreamKey = streamKey || `workflow-${workflowId}`
+
+    logger.info('Relaying workflow event to WebSocket stream', { 
+      workflowId, 
+      streamKey: targetStreamKey, 
+      eventType: type 
+    })
+
+    // Send the workflow update to the WebSocket stream
+    await streams.set(targetStreamKey, {
+      type: 'workflow_update',
+      workflowId,
+      eventType: type,
+      ...eventData,
+      timestamp: eventData.timestamp || new Date().toISOString(),
+    })
+
+    // Also broadcast to a general workflow stream for monitoring
+    if (streams.workflow) {
+      await streams.workflow.set({
         type: 'workflow_update',
         workflowId,
         eventType: type,
         ...eventData,
         timestamp: eventData.timestamp || new Date().toISOString(),
       })
-    } else {
-      // Broadcast to all connected streams that are subscribed to this workflow
-      // This would require a more sophisticated subscription mechanism
-      logger.debug('No specific stream ID provided for workflow event', { workflowId })
-      
-      // In a real implementation, you'd maintain a mapping of workflowId to streamIds
-      // For now, we'll rely on the streamId being passed through the event chain
     }
+
   } catch (error) {
     logger.error('Error relaying workflow event to WebSocket', {
       error: error instanceof Error ? error.message : 'Unknown error',
       workflowId,
-      streamId,
+      streamKey,
     })
   }
 }
