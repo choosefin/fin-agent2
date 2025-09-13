@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     const isWorkflow = detectWorkflow(body.message);
     
     // Choose the appropriate endpoint
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const endpoint = isWorkflow ? '/api/workflow/trigger' : '/api/chat';
     
     console.log(`Routing to ${endpoint} - Workflow detected: ${isWorkflow}`);
@@ -144,6 +144,6 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({ 
     status: 'ok',
-    backendUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004'
+    backendUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
   });
 }

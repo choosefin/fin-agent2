@@ -173,7 +173,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
 
   // Setup SSE connection for workflow updates
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const eventSource = new EventSource(`${apiUrl}/api/workflow/stream`);
     eventSourceRef.current = eventSource;
 
@@ -192,7 +192,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
   }, [handleWorkflowEvent]);
 
   const pollWorkflowResults = async (workflowId: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const maxAttempts = 60; // Poll for up to 60 seconds
     let attempts = 0;
     
@@ -242,7 +242,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
   };
 
   const triggerWorkflow = async (message: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     
     try {
       const response = await fetch(`${apiUrl}/api/workflow/trigger`, {
@@ -378,7 +378,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
   };
 
   const defaultMessageHandler = async (message: string): Promise<ChatResponse> => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const response = await fetch(`${apiUrl}/api/chat`, {
       method: 'POST',
       headers: {

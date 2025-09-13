@@ -22,6 +22,6 @@ declare module 'motia' {
     'HealthCheck': ApiRouteHandler<Record<string, unknown>, unknown, never>
     'ChatWithAgent': ApiRouteHandler<{ message: string; assistantType: 'general' | 'analyst' | 'trader' | 'advisor' | 'riskManager' | 'economist'; userId: string; symbols?: string[] }, unknown, never>
     'ApiTrigger': ApiRouteHandler<{ pet: { name: string; photoUrl: string }; foodOrder?: { id: string; quantity: number } }, ApiResponse<200, { id: number; name: string; photoUrl: string }>, { topic: 'process-food-order'; data: { email: string; quantity: number; petId: number } }>
-    'AgentExecutor': EventHandler<{ workflowId: string; stepIndex: number; agent: string; task: string }, never>
+    'AgentExecutor': EventHandler<{ workflowId: string; stepIndex: number; agent: string; task: string }, { topic: 'workflow.agent.started'; data: { workflowId: string; stepIndex: number; agent: string; task: string } }>
   }
 }
