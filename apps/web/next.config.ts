@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Set the workspace root to silence lockfile warnings
+  outputFileTracingRoot: '../../',
   // Azure App Service compatibility
   serverExternalPackages: ['@supabase/supabase-js'],
   // Ensure proper handling of environment variables

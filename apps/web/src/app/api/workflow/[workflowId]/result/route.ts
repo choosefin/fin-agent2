@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { workflowId: string } }
+  { params }: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const { workflowId } = await params;
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
     
     // Forward to backend
-    const response = await fetch(`${backendUrl}/api/workflow/${params.workflowId}/result`, {
+    const response = await fetch(`${backendUrl}/api/workflow/${workflowId}/result`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -29,7 +30,7 @@ export async function GET(
     // Return a mock response if backend is not available
     // This helps with development when backend isn't running
     return NextResponse.json({
-      workflowId: params.workflowId,
+      workflowId,
       status: 'processing',
       message: 'Backend service unavailable. Please ensure the Motia backend is running on port 3004.',
       results: [],

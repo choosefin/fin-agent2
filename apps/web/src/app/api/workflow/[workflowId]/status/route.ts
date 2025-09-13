@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { workflowId: string } }
+  { params }: { params: Promise<{ workflowId: string }> }
 ) {
   try {
+    const { workflowId } = await params;
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
     
     // Forward to backend
-    const response = await fetch(`${backendUrl}/api/workflow/${params.workflowId}/status`, {
+    const response = await fetch(`${backendUrl}/api/workflow/${workflowId}/status`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
