@@ -27,12 +27,20 @@ jobs:
       - name: Run TypeScript check
         run: |
           cd apps/${{ matrix.app }}
-          npx tsc --noEmit
+          npx tsc --noEmit 2>&1 | tee build.log || true
           
       - name: Run ESLint
         run: |
           cd apps/${{ matrix.app }}
-          npm run lint
+          npm run lint 2>&1 | tee -a build.log || true
+          
+      - name: Check for errors
+        run: |
+          cd apps/${{ matrix.app }}
+          if [ -f build.log ] && grep -q "error" build.log; then
+            echo "Build errors found"
+            exit 1
+          fi
           
       - name: Post results as comment
         if: failure()
@@ -40,7 +48,18 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const output = fs.readFileSync('build.log', 'utf8');
+            const path = require('path');
+            const buildLogPath = path.join('apps', '${{ matrix.app }}', 'build.log');
+            let output = 'No build log found';
+            
+            if (fs.existsSync(buildLogPath)) {
+              output = fs.readFileSync(buildLogPath, 'utf8');
+              // Truncate if too long for GitHub comment
+              if (output.length > 60000) {
+                output = output.substring(0, 60000) + '\n\n... (truncated)';
+              }
+            }
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
