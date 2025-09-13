@@ -12,6 +12,9 @@ declare module 'motia' {
   }
 
   interface Handlers {
+    'WorkflowStream': ApiRouteHandler<Record<string, unknown>, unknown, never>
+    'WorkflowStatus': ApiRouteHandler<Record<string, unknown>, unknown, never>
+    'WorkflowResult': ApiRouteHandler<Record<string, unknown>, unknown, never>
     'WorkflowOrchestrator': ApiRouteHandler<{ message: string; userId: string; context?: { symbols?: string[]; timeframe?: string; riskTolerance?: 'conservative' | 'moderate' | 'aggressive' } }, unknown, { topic: 'workflow.agent.started'; data: { workflowId: string; stepIndex: number; agent: string; task: string } }>
     'StateAuditJob': CronHandler<{ topic: 'notification'; data: { templateId: string; email: string; templateData: Record<string, unknown> } }>
     'ProcessFoodOrder': EventHandler<{ email: string; quantity: number; petId: number }, { topic: 'notification'; data: { templateId: string; email: string; templateData: Record<string, unknown> } }>

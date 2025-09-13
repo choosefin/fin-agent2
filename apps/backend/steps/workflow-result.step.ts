@@ -6,15 +6,12 @@ export const config: ApiRouteConfig = {
   name: 'WorkflowResult',
   method: 'GET',
   path: '/api/workflow/:workflowId/result',
-  paramsSchema: z.object({
-    workflowId: z.string(),
-  }),
   emits: [],
 };
 
 export const handler: Handlers['WorkflowResult'] = async (req, { logger, state, traceId }) => {
   try {
-    const { workflowId } = req.params;
+    const { workflowId } = req.pathParams;
     
     logger.info('Fetching workflow result', { 
       workflowId,
@@ -22,7 +19,7 @@ export const handler: Handlers['WorkflowResult'] = async (req, { logger, state, 
     });
 
     // Get workflow state
-    const workflow = await state.get('workflows', workflowId);
+    const workflow: any = await state.get('workflows', workflowId);
     
     if (!workflow) {
       return {
@@ -44,7 +41,7 @@ export const handler: Handlers['WorkflowResult'] = async (req, { logger, state, 
     let combinedResponse = '';
     
     if (isComplete && results.length > 0) {
-      combinedResponse = results.map(r => 
+      combinedResponse = results.map((r: any) => 
         `## ${r.agent.toUpperCase()} Analysis\n\n${r.result}\n`
       ).join('\n---\n\n');
     }

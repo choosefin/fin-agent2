@@ -6,15 +6,12 @@ export const config: ApiRouteConfig = {
   name: 'WorkflowStatus',
   method: 'GET',
   path: '/api/workflow/:workflowId/status',
-  paramsSchema: z.object({
-    workflowId: z.string(),
-  }),
   emits: [],
 };
 
 export const handler: Handlers['WorkflowStatus'] = async (req, { logger, state, traceId }) => {
   try {
-    const { workflowId } = req.params;
+    const { workflowId } = req.pathParams;
     
     logger.info('Fetching workflow status', { 
       workflowId,
@@ -22,7 +19,7 @@ export const handler: Handlers['WorkflowStatus'] = async (req, { logger, state, 
     });
 
     // Get workflow state
-    const workflow = await state.get('workflows', workflowId);
+    const workflow: any = await state.get('workflows', workflowId);
     
     if (!workflow) {
       return {
@@ -37,8 +34,8 @@ export const handler: Handlers['WorkflowStatus'] = async (req, { logger, state, 
     // Get all step statuses
     const stepStatuses = [];
     for (let i = 0; i < workflow.steps.length; i++) {
-      const stepData = await state.get('workflows', `${workflowId}:step:${i}`);
-      const resultData = await state.get('workflows', `${workflowId}:result:${i}`);
+      const stepData: any = await state.get('workflows', `${workflowId}:step:${i}`);
+      const resultData: any = await state.get('workflows', `${workflowId}:result:${i}`);
       
       stepStatuses.push({
         index: i,
