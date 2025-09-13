@@ -60,7 +60,7 @@ export class LLMService {
     const systemPrompt = this.getSystemPrompt(assistantType);
     let accumulatedContent = '';
     let provider = 'groq';
-    let model = 'llama-3.1-70b-versatile';
+    let model = 'llama-3.3-70b-versatile';
     let tokensUsed = 0;
 
     // Try Groq first
@@ -71,7 +71,7 @@ export class LLMService {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message },
           ],
-          model: 'llama-3.1-70b-versatile',
+          model: 'llama-3.3-70b-versatile',
           temperature: 0.7,
           max_tokens: 2048,
           stream: true,
@@ -85,9 +85,7 @@ export class LLMService {
               await this.config.streamCallback(token, { provider, model });
             }
           }
-          if (chunk.usage) {
-            tokensUsed = chunk.usage.total_tokens;
-          }
+          // Usage is not available in streaming chunks for Groq
         }
 
         return { content: accumulatedContent, provider, model, tokensUsed };
@@ -125,9 +123,7 @@ export class LLMService {
               await this.config.streamCallback(token, { provider, model });
             }
           }
-          if (chunk.usage) {
-            tokensUsed = chunk.usage.total_tokens;
-          }
+          // Usage is not available in streaming chunks for Groq
         }
 
         return { content: accumulatedContent, provider, model, tokensUsed };
@@ -165,9 +161,7 @@ export class LLMService {
               await this.config.streamCallback(token, { provider, model });
             }
           }
-          if (chunk.usage) {
-            tokensUsed = chunk.usage.total_tokens;
-          }
+          // Usage is not available in streaming chunks for Groq
         }
 
         return { content: accumulatedContent, provider, model, tokensUsed };
