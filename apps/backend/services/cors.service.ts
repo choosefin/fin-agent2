@@ -33,16 +33,19 @@ export class CorsService {
   private getEnvironmentConfig(): CorsConfig {
     const isProduction = process.env.NODE_ENV === 'production';
     // Parse allowed origins from environment or use defaults
-    const envOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
-    const allowedOrigins = envOrigins.length > 0 ? envOrigins : [
+    const envOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(o => o) || [];
+    const defaultOrigins = [
       'https://finagent-web-pps457j4wjrc6.azurewebsites.net',
-      'http://finagent-web-pps457j4wjrc6.azurewebsites.net'
+      'http://finagent-web-pps457j4wjrc6.azurewebsites.net',
+      'http://localhost:3001',
+      'http://localhost:3000'
     ];
+    const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultOrigins;
 
     if (isProduction) {
       // Production configuration - strict
       return {
-        origin: allowedOrigins,
+        origin: allowedOrigins as string[],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: [
           'Content-Type',
@@ -129,7 +132,7 @@ export class CorsService {
 
     if (Array.isArray(configOrigin)) {
       // Check if any element is a RegExp or string
-      return configOrigin.some(allowed => {
+      return configOrigin.some((allowed: any) => {
         if (allowed instanceof RegExp) {
           return allowed.test(origin);
         }
@@ -232,7 +235,7 @@ export class CorsService {
       this.config.origin = (this.config.origin as Array<string | RegExp>).filter(o => {
         if (typeof o === 'string') return o !== origin;
         return true; // Keep RegExp patterns
-      });
+      }) as any;
     }
   }
 }
