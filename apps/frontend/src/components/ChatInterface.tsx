@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useSSEChat } from '../hooks/useSSEChat'
+import { usePollingChat } from '../hooks/usePollingChat'
 
 export interface ChatInterfaceProps {
   userId?: string
@@ -23,11 +23,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     workflowStatus,
     sendMessage,
     clearMessages,
-  } = useSSEChat({
+  } = usePollingChat({
     onError: (error) => {
-      console.error('Chat SSE error:', error)
+      console.error('Chat error:', error)
     },
-    apiUrl: '/api/chat/stream', // Adjust based on your backend URL
+    apiUrl: '/api/chat/stream',
+    pollingInterval: 1000, // Poll every second for workflow updates
   })
 
   // Auto-scroll to bottom when new messages arrive
@@ -95,15 +96,26 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {workflowStatus && (
         <div className="p-4 bg-blue-50 border-b border-blue-200">
           <div className="text-sm font-medium text-blue-800">
-            Multi-Agent Workflow Active
+            Multi-Agent Workflow {workflowStatus.status === 'completed' ? 'Completed' : 'Active'}
           </div>
-          <div className="mt-1 text-xs text-blue-600">
-            {workflowStatus.currentAgent && (
-              <div>Current Agent: {workflowStatus.currentAgent}</div>
-            )}
-            {workflowStatus.currentTask && (
-              <div>Task: {workflowStatus.currentTask}</div>
-            )}
+          <div className="mt-2 space-y-2">
+            {workflowStatus.agents && workflowStatus.agents.map((agent, index) => (
+              <div key={agent.name} className="flex items-center gap-2 text-xs">
+                <div className={`w-2 h-2 rounded-full ${
+                  agent.status === 'completed' ? 'bg-green-500' :
+                  agent.status === 'running' ? 'bg-blue-500 animate-pulse' :
+                  'bg-gray-300'
+                }`} />
+                <span className={`${
+                  agent.status === 'running' ? 'font-semibold' : ''
+                }`}>
+                  {agent.name}
+                </span>
+                {agent.status === 'completed' && (
+                  <span className="text-green-600">✓</span>
+                )}
+              </div>
+            ))}
             {workflowStatus.progress !== undefined && (
               <div className="mt-2">
                 <div className="w-full bg-blue-200 rounded-full h-1.5">
@@ -137,12 +149,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   ? 'bg-blue-500 text-white'
                   : message.role === 'system'
                   ? 'bg-gray-100 text-gray-700 italic'
+                  : message.role === 'workflow'
+                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
                   : 'bg-gray-200 text-gray-800'
               }`}
             >
-              {message.metadata?.assistantType && message.role === 'assistant' && (
-                <div className="text-xs opacity-75 mb-1">
-                  {message.metadata.assistantType}
+              {message.metadata?.assistantType && (message.role === 'assistant' || message.role === 'workflow') && (
+                <div className="text-xs opacity-75 mb-1 font-semibold">
+                  {message.metadata.agent ? `Agent: ${message.metadata.agent}` : message.metadata.assistantType}
                   {message.metadata.provider && ` • ${message.metadata.provider}`}
                 </div>
               )}

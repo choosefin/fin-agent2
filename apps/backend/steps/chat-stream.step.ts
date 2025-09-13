@@ -26,9 +26,6 @@ export const config: ApiRouteConfig = {
   ],
 }
 
-// Store for active SSE connections
-const activeStreams = new Map<string, { writer: WritableStreamDefaultWriter, closed: boolean }>()
-
 export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, state, traceId }: any) => {
   const { message, assistantType = 'general', userId, context } = req.body
   
@@ -38,181 +35,89 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
     const shouldTriggerWorkflow = await workflowDetector.analyze(message, context)
 
     if (shouldTriggerWorkflow) {
-      // Workflow path
+      // Workflow path - return JSON response with workflowId
       logger.info('Workflow detected, triggering multi-agent analysis', { traceId })
       
-      // Create a readable stream for SSE
-      const stream = new ReadableStream({
-        async start(controller) {
-          const encoder = new TextEncoder()
-          
-          // Send initial workflow detection event
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({
-              type: 'workflow_detected',
-              workflowId: traceId,
-              message: 'Initiating multi-agent analysis...',
-              agents: shouldTriggerWorkflow.agents,
-              estimatedTime: shouldTriggerWorkflow.estimatedTime,
-            })}\n\n`)
-          )
-
-          // Store the stream controller for workflow updates
-          activeStreams.set(traceId, { 
-            writer: controller as any, 
-            closed: false 
-          })
-
-          // Emit workflow trigger event
-          await emit({
-            topic: 'workflow.trigger',
-            data: {
-              workflowId: traceId,
-              userId,
-              message,
-              context,
-              agents: shouldTriggerWorkflow.agents,
-            },
-          })
-
-          // Keep connection alive until workflow completes
-          // The workflow events will be handled by a separate event handler
+      // Emit workflow trigger event
+      await emit({
+        topic: 'workflow.trigger',
+        data: {
+          workflowId: traceId,
+          userId,
+          message,
+          context,
+          agents: shouldTriggerWorkflow.agents,
         },
-        cancel() {
-          // Clean up when client disconnects
-          activeStreams.delete(traceId)
-        }
       })
 
+      // Return JSON response with workflow ID for polling
       return {
         status: 200,
-        body: stream,
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+        body: {
+          workflowId: traceId,
+          message: 'Workflow initiated successfully',
+          agents: shouldTriggerWorkflow.agents,
+          estimatedTime: shouldTriggerWorkflow.estimatedTime,
         },
       }
     } else {
-      // Regular chat path with streaming
-      logger.info('Processing streaming chat message', { traceId, assistantType })
+      // Regular chat path - process synchronously and return response
+      logger.info('Processing chat message', { traceId, assistantType })
       
-      // Create a readable stream for SSE
-      const stream = new ReadableStream({
-        async start(controller) {
-          const encoder = new TextEncoder()
-          
-          // Send initial status
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({
-              type: 'chat_started',
-              traceId,
-              assistantType,
-            })}\n\n`)
-          )
-
-          // Emit chat started event
-          await emit({
-            topic: 'chat.started',
-            data: { traceId, userId, message, assistantType },
-          })
-
-          try {
-            // Initialize LLM service with streaming callback
-            const llmService = new LLMService({
-              streamCallback: async (token, metadata) => {
-                // Send each token via SSE
-                controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({
-                    type: 'token',
-                    content: token,
-                    metadata,
-                  })}\n\n`)
-                )
-              },
-              providerSwitchCallback: async (from, to, reason) => {
-                // Notify about provider switch
-                controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({
-                    type: 'provider_switch',
-                    from,
-                    to,
-                    reason,
-                  })}\n\n`)
-                )
-              },
-            })
-
-            // Process message with streaming
-            const response = await llmService.processWithStreaming(
-              message,
-              assistantType,
-              { traceId, userId }
-            )
-
-            // Store complete response in state
-            await state.set('chats', traceId, {
-              userId,
-              message,
-              response: response.content,
-              assistantType,
-              provider: response.provider,
-              model: response.model,
-              timestamp: new Date().toISOString(),
-            })
-
-            // Send completion event
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({
-                type: 'chat_completed',
-                traceId,
-                provider: response.provider,
-                model: response.model,
-                tokensUsed: response.tokensUsed,
-              })}\n\n`)
-            )
-
-            // Emit completion event
-            await emit({
-              topic: 'chat.completed',
-              data: {
-                traceId,
-                userId,
-                response: response.content,
-                provider: response.provider,
-                model: response.model,
-              },
-            })
-
-            // Close the stream
-            controller.close()
-          } catch (error) {
-            // Send error event
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({
-                type: 'error',
-                message: error instanceof Error ? error.message : 'An error occurred',
-                traceId,
-              })}\n\n`)
-            )
-            controller.close()
-            throw error
-          }
-        },
-        cancel() {
-          // Clean up when client disconnects
-          logger.info('Client disconnected from stream', { traceId })
-        }
+      // Emit chat started event
+      await emit({
+        topic: 'chat.started',
+        data: { traceId, userId, message, assistantType },
       })
 
-      return {
-        status: 200,
-        body: stream,
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
+      try {
+        // Initialize LLM service
+        const llmService = new LLMService()
+
+        // Process message (without streaming since Motia doesn't support it)
+        const response = await llmService.process(
+          message,
+          assistantType,
+          { traceId, userId }
+        )
+
+        // Store complete response in state
+        await state.set('chats', traceId, {
+          userId,
+          message,
+          response: response.content,
+          assistantType,
+          provider: response.provider,
+          model: response.model,
+          timestamp: new Date().toISOString(),
+        })
+
+        // Emit completion event
+        await emit({
+          topic: 'chat.completed',
+          data: {
+            traceId,
+            userId,
+            response: response.content,
+            provider: response.provider,
+            model: response.model,
+          },
+        })
+
+        // Return JSON response
+        return {
+          status: 200,
+          body: {
+            traceId,
+            response: response.content,
+            assistantType,
+            llmProvider: response.provider,
+            model: response.model,
+          },
+        }
+      } catch (error) {
+        logger.error('Error processing chat', { error: error instanceof Error ? error.message : 'Unknown error', traceId })
+        throw error
       }
     }
   } catch (error) {
@@ -224,25 +129,6 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
         error: 'An error occurred processing your request',
         message: error instanceof Error ? error.message : 'Unknown error',
       },
-    }
-  }
-}
-
-// Export helper to send workflow updates to active streams
-export function sendWorkflowUpdate(workflowId: string, data: any) {
-  const stream = activeStreams.get(workflowId)
-  if (stream && !stream.closed) {
-    const encoder = new TextEncoder()
-    try {
-      stream.writer.enqueue(
-        encoder.encode(`data: ${JSON.stringify({
-          type: 'workflow_update',
-          ...data,
-        })}\n\n`)
-      )
-    } catch (error) {
-      // Stream might be closed
-      activeStreams.delete(workflowId)
     }
   }
 }

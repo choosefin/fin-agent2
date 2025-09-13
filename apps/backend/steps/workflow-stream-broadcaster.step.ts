@@ -30,15 +30,15 @@ export const config: EventConfig = {
   input: workflowEventSchema,
 };
 
-export const handler: Handlers['WorkflowStreamBroadcaster'] = async (input, { logger, streams, traceId }) => {
+export const handler: Handlers['WorkflowStreamBroadcaster'] = async (input, { logger, state, traceId }) => {
   try {
     const { workflowId, userId, type, ...eventData } = input;
     
     // Determine event type
     const eventType = type || 'workflow.update';
     
-    // Create stream message
-    const streamMessage = {
+    // Create event message
+    const eventMessage = {
       type: eventType,
       workflowId,
       userId,
@@ -46,26 +46,39 @@ export const handler: Handlers['WorkflowStreamBroadcaster'] = async (input, { lo
       ...eventData,
     };
     
-    logger.info('Broadcasting workflow event via stream', {
+    logger.info('Processing workflow event', {
       type: eventType,
       workflowId,
       userId,
       traceId,
     });
     
-    // Use Motia's native streaming to broadcast updates
-    // Streams are available at ws://localhost:3000/streams/<workflow-id>
-    if (streams && workflowId) {
-      const streamKey = `workflow-${workflowId}`;
+    // Store workflow events for polling
+    // Since Motia doesn't support streaming, we store events for the UI to poll
+    if (workflowId) {
+      // Get existing events or initialize
+      const existingEvents = await state.get('workflow-events', workflowId) || [];
       
-      // Set the data to the specific workflow stream
-      await streams.set(streamKey, streamMessage);
+      // Add new event
+      const updatedEvents = [...existingEvents, eventMessage];
       
-      // Also broadcast to a general workflow stream for monitoring
-      await streams.set('workflow-updates', streamMessage);
+      // Store updated events (keep last 100 events)
+      await state.set('workflow-events', workflowId, updatedEvents.slice(-100));
+      
+      // Update workflow status based on event type
+      if (eventType === 'workflow.completed') {
+        const workflow = await state.get('workflows', workflowId);
+        if (workflow) {
+          await state.set('workflows', workflowId, {
+            ...workflow,
+            status: 'completed',
+            completedAt: new Date().toISOString(),
+          });
+        }
+      }
     }
     
-    logger.debug('Stream broadcast complete', {
+    logger.debug('Workflow event stored', {
       workflowId,
       eventType,
       traceId,
@@ -73,7 +86,7 @@ export const handler: Handlers['WorkflowStreamBroadcaster'] = async (input, { lo
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Failed to broadcast workflow event', {
+    logger.error('Failed to process workflow event', {
       error: errorMessage,
       input,
       traceId,

@@ -4,7 +4,6 @@ import { groqService } from '../services/groq.service';
 import { azureOpenAI } from '../services/azure-openai.service';
 import { agentPrompts } from '../src/mastra/config';
 import { OpenAI } from 'openai';
-import { sendWorkflowUpdate } from './chat-stream.step';
 
 const inputSchema = z.object({
   workflowId: z.string(),
@@ -167,9 +166,8 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     // Get previous results for context
     const previousResults = workflow.results || [];
 
-    // Send SSE update that agent is processing
-    sendWorkflowUpdate(workflowId, {
-      type: 'agent_processing',
+    // Log that agent is processing
+    logger.info('Agent processing started', {
       agent,
       task,
       stepIndex,
@@ -182,9 +180,8 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     for await (const progress of progressGenerator) {
       logger.info(`Agent ${agent} progress: ${progress}`);
       
-      // Send SSE progress update
-      sendWorkflowUpdate(workflowId, {
-        type: 'agent_progress',
+      // Log progress update
+      logger.debug('Agent progress update', {
         agent,
         stepIndex,
         message: progress,
@@ -218,12 +215,10 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
       lastUpdated: new Date().toISOString(),
     });
 
-    // Send SSE update for agent completion
-    sendWorkflowUpdate(workflowId, {
-      type: 'agent_completed',
+    // Log agent completion
+    logger.info('Agent completed', {
       agent,
       stepIndex,
-      result: agentResponse,
       totalSteps: workflow.steps?.length || workflow.agents?.length || 1,
       completedSteps: stepIndex + 1,
     });
@@ -247,9 +242,9 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     const totalSteps = workflow.steps?.length || workflow.agents?.length || 1;
     if (stepIndex >= totalSteps - 1) {
       // This was the last agent - workflow complete
-      sendWorkflowUpdate(workflowId, {
-        type: 'workflow_completed',
-        results: updatedResults,
+      logger.info('Workflow completed', {
+        workflowId,
+        resultsCount: updatedResults.length,
         message: 'Multi-agent analysis complete',
       });
       await emit({
@@ -268,9 +263,8 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
       const nextAgent = typeof nextStep === 'string' ? nextStep : nextStep?.agent;
       const nextTask = typeof nextStep === 'string' ? `Process with ${nextStep}` : nextStep?.task;
       
-      // Send SSE update for next agent starting
-      sendWorkflowUpdate(workflowId, {
-        type: 'agent_starting',
+      // Log next agent starting
+      logger.info('Starting next agent', {
         agent: nextAgent,
         task: nextTask,
         stepIndex: stepIndex + 1,

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { EventConfig, Handlers } from 'motia';
-import { sendWorkflowUpdate } from './chat-stream.step';
 
 const inputSchema = z.object({
   workflowId: z.string(),
@@ -55,9 +54,8 @@ export const handler: Handlers['WorkflowTriggerHandler'] = async (input, { logge
       results: [],
     });
 
-    // Send workflow started update via SSE
-    sendWorkflowUpdate(workflowId, {
-      type: 'workflow_started',
+    // Log workflow started
+    logger.info('Workflow started', {
       workflowId,
       agents,
       totalSteps: agents.length,
@@ -88,9 +86,8 @@ export const handler: Handlers['WorkflowTriggerHandler'] = async (input, { logge
         task 
       });
 
-      // Send agent starting update via SSE
-      sendWorkflowUpdate(workflowId, {
-        type: 'agent_starting',
+      // Log agent starting
+      logger.info('Agent starting', {
         workflowId,
         agent: firstAgent,
         task,
@@ -120,10 +117,8 @@ export const handler: Handlers['WorkflowTriggerHandler'] = async (input, { logge
       // No agents, complete immediately
       logger.warn('No agents specified for workflow', { workflowId });
       
-      sendWorkflowUpdate(workflowId, {
-        type: 'workflow_completed',
+      logger.warn('Workflow completed with no agents', {
         workflowId,
-        message: 'Workflow completed with no agents',
       });
     }
 
@@ -135,9 +130,8 @@ export const handler: Handlers['WorkflowTriggerHandler'] = async (input, { logge
       userId,
     });
 
-    // Send error update via SSE
-    sendWorkflowUpdate(workflowId, {
-      type: 'workflow_error',
+    // Log error
+    logger.error('Workflow error', {
       workflowId,
       error: errorMessage,
       message: 'Failed to start workflow',
