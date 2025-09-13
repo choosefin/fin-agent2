@@ -51,6 +51,8 @@ jobs:
     - name: Build backend
       run: |
         cd apps/backend
+        # Pre-build Motia to avoid timeout during Azure startup
+        npx motia build || echo "Motia build completed or not required"
         npm run build || echo "Build script not found, skipping build"
 
     - name: Create deployment package
@@ -62,22 +64,32 @@ jobs:
         # Create a startup script for Azure Linux App Service
         cat > startup.sh << 'BACKEND_EOF'
         #!/bin/bash
+        set -e  # Exit on error
         echo "Starting Motia backend application..."
         cd /home/site/wwwroot
         
         # Install dependencies if node_modules doesn't exist
         if [ ! -d "node_modules" ]; then
-            echo "Installing dependencies..."
-            npm ci --only=production
+            echo "ERROR: node_modules not found - this should have been included in deployment"
+            echo "Attempting emergency install..."
+            npm ci --only=production --no-audit --no-fund || npm install --only=production --no-audit --no-fund
         fi
         
-        # Use npx to run Motia commands (avoids global installation)
-        echo "Building Motia backend..."
-        npx motia build || echo "Build completed or not required"
+        # Check if Motia is available
+        if ! npx motia --version > /dev/null 2>&1; then
+            echo "ERROR: Motia not found, installing..."
+            npm install @motia/core @motia/cli --no-save --no-audit --no-fund
+        fi
         
-        # Start the application using npx in production mode
+        # Motia should already be built during CI/CD
+        # Start with increased memory and timeout handling
         echo "Starting Motia on port \${PORT:-3001}..."
-        PORT=\${PORT:-3001} npx motia start --host 0.0.0.0
+        export NODE_OPTIONS="--max-old-space-size=2048"
+        PORT=\${PORT:-3001} timeout 300 npx motia start --host 0.0.0.0 || {
+            echo "ERROR: Failed to start Motia within 5 minutes"
+            echo "Attempting direct node start as fallback..."
+            PORT=\${PORT:-3001} node node_modules/@motia/cli/dist/index.js start --host 0.0.0.0
+        }
         BACKEND_EOF
         
         chmod +x startup.sh
@@ -86,13 +98,15 @@ jobs:
         rm -f deploy.cmd .deployment
         
         # Create deployment package INCLUDING node_modules for Motia
+        # Also include the built Motia files
         zip -r deploy.zip . \
           -x "*.git*" \
           -x "*.env*" \
           -x "*test*" \
           -x "*.md" \
           -x ".DS_Store" \
-          -x "node_modules/.cache/*"
+          -x "node_modules/.cache/*" \
+          -x "node_modules/.bin/*"
 
     - name: Configure Backend App Service
       run: |
@@ -133,7 +147,7 @@ jobs:
         package: apps/backend/deploy.zip
         clean: true
         restart: true
-      timeout-minutes: 10
+      timeout-minutes: 15
       continue-on-error: true
       id: deploy-backend
     
@@ -161,7 +175,7 @@ jobs:
           --resource-group "$RESOURCE_GROUP" \
           --name ${{ env.AZURE_WEBAPP_NAME_BACKEND }} \
           --src apps/backend/deploy.zip \
-          --timeout 600 || exit 1
+          --timeout 900 || exit 1
 
   build-and-deploy-frontend:
     name: Build and Deploy Frontend
@@ -371,7 +385,7 @@ jobs:
         package: apps/web/deploy.zip
         clean: true
         restart: true
-      timeout-minutes: 10
+      timeout-minutes: 15
       continue-on-error: true
       id: deploy-frontend
     
@@ -399,7 +413,7 @@ jobs:
           --resource-group "$RESOURCE_GROUP" \
           --name ${{ env.AZURE_WEBAPP_NAME_FRONTEND }} \
           --src apps/web/deploy.zip \
-          --timeout 600 || exit 1
+          --timeout 900 || exit 1
 
   configure-app-settings:
     name: Configure App Settings
