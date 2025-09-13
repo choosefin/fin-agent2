@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { AssistantSelector, assistantProfiles, AssistantProfile } from '@/components/assistant-selector';
-import { UnifiedChatInterface } from '@/components/unified-chat-interface';
+import { SmartChatInterface } from '@/components/smart-chat-interface';
 import { PlaidConnect } from '@/components/plaid-connect';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, Menu, X, Settings, LogOut } from 'lucide-react';
@@ -154,7 +154,7 @@ export default function HomePage() {
 
         {/* Chat Interface */}
         <div className="flex-1 overflow-hidden">
-          <UnifiedChatInterface assistant={selectedAssistant} />
+          <SmartChatInterface assistant={selectedAssistant} />
         </div>
       </div>
     </div>
