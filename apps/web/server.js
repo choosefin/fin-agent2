@@ -22,21 +22,39 @@ let nextApp;
 let handle;
 
 try {
-  // Try to load the standalone server
-  const standaloneServerPath = path.join(__dirname, '.next', 'standalone', 'server.js');
-  console.log(`Checking for standalone server at: ${standaloneServerPath}`);
+  const fs = require('fs');
   
-  if (require('fs').existsSync(standaloneServerPath)) {
-    console.log('Found standalone server, using it...');
-    // For standalone builds, we need to set the port before requiring
-    process.env.PORT = port.toString();
-    require(standaloneServerPath);
-  } else if (require('fs').existsSync(path.join(__dirname, '.next', 'standalone', 'apps', 'web', 'server.js'))) {
-    // Monorepo structure
-    console.log('Found monorepo standalone server...');
-    process.env.PORT = port.toString();
-    require(path.join(__dirname, '.next', 'standalone', 'apps', 'web', 'server.js'));
-  } else {
+  // Check various possible locations for the server
+  const possiblePaths = [
+    // Direct server.js in monorepo structure
+    path.join(__dirname, 'apps', 'web', 'server.js'),
+    // Standalone build locations
+    path.join(__dirname, '.next', 'standalone', 'server.js'),
+    path.join(__dirname, '.next', 'standalone', 'apps', 'web', 'server.js'),
+    // Current directory server (if this is already in the right place)
+    path.join(__dirname, 'server.js')
+  ];
+  
+  let serverFound = false;
+  
+  for (const serverPath of possiblePaths) {
+    if (serverPath !== __filename && fs.existsSync(serverPath)) {
+      console.log(`Found Next.js server at: ${serverPath}`);
+      process.env.PORT = port.toString();
+      process.env.HOSTNAME = hostname;
+      
+      // Change to the directory containing the server for proper relative paths
+      const serverDir = path.dirname(serverPath);
+      process.chdir(serverDir);
+      console.log(`Changed working directory to: ${serverDir}`);
+      
+      require(serverPath);
+      serverFound = true;
+      break;
+    }
+  }
+  
+  if (!serverFound) {
     // Fallback to regular Next.js server
     console.log('No standalone build found, using regular Next.js server...');
     const next = require('next');

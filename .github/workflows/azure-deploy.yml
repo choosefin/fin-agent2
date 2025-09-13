@@ -243,29 +243,43 @@ jobs:
           echo "Using Next.js standalone build"
           mkdir -p deploy-package
           
-          # For monorepo: copy the app-specific files
+          # For monorepo: copy ALL files from standalone
           if [ -d ".next/standalone/apps/web" ]; then
             echo "Monorepo structure detected"
-            cp -r .next/standalone/apps/web/* deploy-package/
-            cp -r .next/standalone/apps/web/.next deploy-package/ 2>/dev/null || true
+            # Copy the entire standalone output
+            cp -r .next/standalone/* deploy-package/
             
-            # Copy node_modules from standalone root (npm creates flat structure)
-            if [ -d ".next/standalone/node_modules" ]; then
-              echo "Copying standalone node_modules..."
-              cp -r .next/standalone/node_modules deploy-package/
+            # Ensure .next directory from app is in the right place
+            if [ ! -d "deploy-package/.next" ] && [ -d ".next/standalone/apps/web/.next" ]; then
+              echo "Moving .next directory to root"
+              cp -r .next/standalone/apps/web/.next deploy-package/
             fi
           else
             echo "Standard structure"
             cp -rL .next/standalone/* deploy-package/
           fi
           
-          # Copy static files separately (CRITICAL for Next.js)
-          mkdir -p deploy-package/.next
-          cp -r .next/static deploy-package/.next/static 2>/dev/null || true
-          cp -r public deploy-package/public 2>/dev/null || true
+          # Copy static files (CRITICAL - must be at correct path)
+          echo "Copying static files..."
+          if [ -d "deploy-package/apps/web/.next" ]; then
+            # Monorepo structure - ensure static files are in the right place
+            mkdir -p deploy-package/apps/web/.next
+            cp -r .next/static deploy-package/apps/web/.next/static 2>/dev/null || true
+            cp -r public deploy-package/apps/web/public 2>/dev/null || true
+          else
+            # Standard structure
+            mkdir -p deploy-package/.next
+            cp -r .next/static deploy-package/.next/static 2>/dev/null || true
+            cp -r public deploy-package/public 2>/dev/null || true
+          fi
           
-          # Copy our custom server.js wrapper
-          cp server.js deploy-package/ 2>/dev/null || true
+          # Copy our custom server.js wrapper to root
+          cp server.js deploy-package/server.js 2>/dev/null || true
+          
+          # Debug: Show structure
+          echo "Deployment package structure:"
+          find deploy-package -type f -name "server.js" | head -5
+          find deploy-package -type d -name ".next" | head -5
           
         else
           echo "ERROR: Standalone build not found!"
@@ -298,8 +312,12 @@ jobs:
         export HOSTNAME="0.0.0.0"
         
         # Check for standalone server.js in different locations
-        if [ -f "server.js" ]; then
-            echo "Starting custom server.js wrapper..."
+        if [ -f "apps/web/server.js" ]; then
+            echo "Starting monorepo Next.js server..."
+            cd apps/web
+            exec node server.js
+        elif [ -f "server.js" ]; then
+            echo "Starting server.js from root..."
             exec node server.js
         elif [ -f ".next/standalone/server.js" ]; then
             echo "Starting Next.js standalone server directly..."

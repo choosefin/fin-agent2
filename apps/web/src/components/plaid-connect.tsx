@@ -42,8 +42,11 @@ export function PlaidConnect({ onSuccess, onExit }: PlaidConnectProps) {
     }
   };
 
+  // Check if we're using a mock token
+  const isMockToken = linkToken?.startsWith('link-sandbox-mock-');
+  
   const { open, ready } = usePlaidLink({
-    token: linkToken,
+    token: (!isMockToken && linkToken) || null,
     onSuccess: async (publicToken, metadata) => {
       try {
         const response = await fetch('/api/plaid/exchange-token', {
@@ -92,6 +95,27 @@ export function PlaidConnect({ onSuccess, onExit }: PlaidConnectProps) {
           className="ml-2"
         >
           Try again
+        </Button>
+      </div>
+    );
+  }
+
+  // Show mock UI if using mock token
+  if (isMockToken) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="text-yellow-600 text-sm">
+          ⚠️ Plaid credentials not configured. Using mock mode.
+        </div>
+        <Button
+          onClick={() => {
+            // Simulate successful connection in mock mode
+            onSuccess?.();
+          }}
+          className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700"
+        >
+          <Building2 className="mr-2 h-4 w-4" />
+          Connect Bank Account (Mock)
         </Button>
       </div>
     );
