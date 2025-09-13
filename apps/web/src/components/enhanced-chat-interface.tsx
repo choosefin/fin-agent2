@@ -124,7 +124,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
               steps[event.data.stepIndex].status = event.data.error ? 'error' : 'completed';
               steps[event.data.stepIndex].result = event.data.result;
             }
-            
+
             const completed = steps.filter(s => s.status === 'completed').length;
             return {
               ...prev,
@@ -151,12 +151,12 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
             isWorkflowResult: true,
           };
           setMessages(prev => [...prev, workflowMessage]);
-          
+
           // Compile results into a single message
-          const compiledResults = event.data.results?.map((r) => 
+          const compiledResults = event.data.results?.map((r) =>
             `**${r.agent.toUpperCase()} AGENT:**\n${r.result}`
           ).join('\n\n---\n\n') || 'No results available';
-          
+
           const resultMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
@@ -195,17 +195,18 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const maxAttempts = 60; // Poll for up to 60 seconds
     let attempts = 0;
-    
+
     const pollInterval = setInterval(async () => {
       attempts++;
-      
+
       try {
-        const response = await fetch(`${apiUrl}/api/workflow/${workflowId}/result`);
+        // Use proxy route instead of direct backend call
+        const response = await fetch(`/api/workflow/${workflowId}/result`);
         const data = await response.json();
-        
+
         if (data.status === 'completed') {
           clearInterval(pollInterval);
-          
+
           // Display the combined response
           const resultMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -217,7 +218,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
             isWorkflowResult: true,
           };
           setMessages(prev => [...prev, resultMessage]);
-          
+
           // Clear the active workflow
           setActiveWorkflow(null);
         } else if (attempts >= maxAttempts) {
@@ -243,7 +244,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
 
   const triggerWorkflow = async (message: string) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    
+
     try {
       const response = await fetch(`${apiUrl}/api/workflow/trigger`, {
         method: 'POST',
@@ -271,7 +272,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -305,7 +306,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
       }
 
       const data = await response.json();
-      
+
       if (data.isWorkflow && data.triggered) {
         // Workflow was triggered
         const systemMessage: Message = {
@@ -316,7 +317,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           workflowId: data.workflowId,
         };
         setMessages((prev) => [...prev, systemMessage]);
-        
+
         // Set up the active workflow for visualization
         if (data.workflow) {
           const workflow: ActiveWorkflow = {
@@ -336,7 +337,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
           };
           setActiveWorkflow(workflow);
         }
-        
+
         // Poll for workflow results
         pollWorkflowResults(data.workflowId);
       } else if (data.triggered === false) {
@@ -344,7 +345,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: data.message + '\n\nTry prompts like:\n' + 
+          content: data.message + '\n\nTry prompts like:\n' +
             data.suggestions?.map((s: any) => `• "${s.samplePrompts[0]}"`).join('\n'),
           timestamp: new Date(),
           assistantType: assistant.id,
@@ -436,7 +437,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
             <p className="text-lg font-medium">Hi! I&apos;m your {assistant.name}</p>
             <p className="text-sm mt-2">{assistant.description}</p>
             <p className="text-sm mt-4">How can I help you today?</p>
-            
+
             <Button
               onClick={() => setShowWorkflowTrigger(!showWorkflowTrigger)}
               className="mt-6"
@@ -488,10 +489,10 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
             </div>
           ))
         )}
-        
+
         {showWorkflowTrigger && (
           <div className="mt-8">
-            <WorkflowTrigger 
+            <WorkflowTrigger
               onTriggerWorkflow={handleWorkflowTrigger}
               isLoading={isLoading}
             />
