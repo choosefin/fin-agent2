@@ -189,25 +189,25 @@ export const handler: Handlers['WorkflowOrchestrator'] = async (req, { logger, e
       },
     });
 
-    // Start processing agents (this would typically be async)
-    for (let i = 0; i < workflow.steps.length; i++) {
-      const step = workflow.steps[i];
+    // Start the first agent only (sequential processing)
+    if (workflow.steps.length > 0) {
+      const firstStep = workflow.steps[0];
       
-      // Emit agent started event
+      // Emit first agent started event
       await emit({
         topic: 'workflow.agent.started',
         data: {
           workflowId: workflowInstanceId,
-          stepIndex: i,
-          agent: step.agent,
-          task: step.task,
+          stepIndex: 0,
+          agent: firstStep.agent,
+          task: firstStep.task,
         },
       });
 
-      // Update workflow state
-      await state.set('workflows', `${workflowInstanceId}:step:${i}`, {
-        agent: step.agent,
-        task: step.task,
+      // Update workflow state for first step
+      await state.set('workflows', `${workflowInstanceId}:step:0`, {
+        agent: firstStep.agent,
+        task: firstStep.task,
         status: 'processing',
         startedAt: new Date().toISOString(),
       });

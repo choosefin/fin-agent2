@@ -51,7 +51,7 @@ interface EnhancedChatInterfaceProps {
   onSendMessage?: (message: string) => Promise<ChatResponse>;
 }
 
-export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChatInterfaceProps) {
+export function EnhancedChatInterface({ assistant }: EnhancedChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -124,7 +124,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
               steps[event.data.stepIndex].status = event.data.error ? 'error' : 'completed';
               steps[event.data.stepIndex].result = event.data.result;
             }
-            
+
             const completed = steps.filter(s => s.status === 'completed').length;
             return {
               ...prev,
@@ -151,12 +151,12 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
             isWorkflowResult: true,
           };
           setMessages(prev => [...prev, workflowMessage]);
-          
+
           // Compile results into a single message
-          const compiledResults = event.data.results?.map((r) => 
+          const compiledResults = event.data.results?.map((r) =>
             `**${r.agent.toUpperCase()} AGENT:**\n${r.result}`
           ).join('\n\n---\n\n') || 'No results available';
-          
+
           const resultMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
@@ -173,7 +173,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
 
   // Setup SSE connection for workflow updates
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const eventSource = new EventSource(`${apiUrl}/api/workflow/stream`);
     eventSourceRef.current = eventSource;
 
@@ -191,9 +191,62 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     };
   }, [handleWorkflowEvent]);
 
+  const pollWorkflowResults = async (workflowId: string) => {
+    // const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'; // Not used in proxy route
+    const maxAttempts = 60; // Poll for up to 60 seconds
+    let attempts = 0;
+
+    const pollInterval = setInterval(async () => {
+      attempts++;
+
+      try {
+        // Use proxy route instead of direct backend call
+        const response = await fetch(`/api/workflow/${workflowId}/result`);
+        const data = await response.json();
+
+        if (data.status === 'completed') {
+          clearInterval(pollInterval);
+
+          // Display the combined response
+          const resultMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: data.combinedResponse || 'Workflow completed successfully.',
+            timestamp: new Date(),
+            assistantType: 'workflow',
+            workflowId: workflowId,
+            isWorkflowResult: true,
+          };
+          setMessages(prev => [...prev, resultMessage]);
+
+          // Clear the active workflow
+          setActiveWorkflow(null);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          const timeoutMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'system',
+            content: '⏱️ Workflow is taking longer than expected. It may still be running in the background.',
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, timeoutMessage]);
+          setActiveWorkflow(null);
+        }
+      } catch (error) {
+        console.error('Error polling workflow results:', error);
+        if (attempts >= 5) {
+          clearInterval(pollInterval);
+          setActiveWorkflow(null);
+        }
+      }
+    }, 1000); // Poll every second
+  };
+
+  // Unused function - commented out to avoid build warnings
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const triggerWorkflow = async (message: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
-    
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
     try {
       const response = await fetch(`${apiUrl}/api/workflow/trigger`, {
         method: 'POST',
@@ -221,7 +274,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -237,33 +290,78 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     setShowWorkflowTrigger(false);
 
     try {
-      // Check if this should trigger a workflow
-      const workflowResponse = await triggerWorkflow(userMessage.content);
-      
-      if (workflowResponse.triggered) {
+      // Send to the assistant API which handles routing
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          assistantType: assistant.id,
+          userId: 'user-' + Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+
+      if (data.isWorkflow && data.triggered) {
         // Workflow was triggered
         const systemMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'system',
-          content: `🚀 ${workflowResponse.message}`,
+          content: `🚀 ${data.message}`,
           timestamp: new Date(),
-          workflowId: workflowResponse.workflowId,
+          workflowId: data.workflowId,
         };
         setMessages((prev) => [...prev, systemMessage]);
-      } else {
-        // Regular chat message
-        const response = await (onSendMessage || defaultMessageHandler)(
-          userMessage.content
-        );
 
+        // Set up the active workflow for visualization
+        if (data.workflow) {
+          const workflow: ActiveWorkflow = {
+            workflowId: data.workflowId,
+            name: data.workflow.name,
+            steps: data.workflow.steps.map((step: { agent: string; task: string }, index: number) => ({
+              index,
+              agent: step.agent,
+              task: step.task,
+              status: 'pending',
+            })),
+            progress: {
+              completed: 0,
+              total: data.workflow.steps.length,
+              percentage: 0,
+            },
+          };
+          setActiveWorkflow(workflow);
+        }
+
+        // Poll for workflow results
+        pollWorkflowResults(data.workflowId);
+      } else if (data.triggered === false) {
+        // Workflow detection returned false, show suggestions
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: typeof response === 'string' ? response : response.response,
+          content: data.message + '\n\nTry prompts like:\n' +
+            data.suggestions?.map((s: { samplePrompts: string[] }) => `• "${s.samplePrompts[0]}"`).join('\n'),
           timestamp: new Date(),
           assistantType: assistant.id,
         };
-
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        // Regular chat response
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response,
+          timestamp: new Date(),
+          assistantType: assistant.id,
+        };
         setMessages((prev) => [...prev, assistantMessage]);
       }
     } catch (error) {
@@ -282,8 +380,10 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     }
   };
 
+  // Unused function - commented out to avoid build warnings
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const defaultMessageHandler = async (message: string): Promise<ChatResponse> => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const response = await fetch(`${apiUrl}/api/chat`, {
       method: 'POST',
       headers: {
@@ -341,7 +441,7 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
             <p className="text-lg font-medium">Hi! I&apos;m your {assistant.name}</p>
             <p className="text-sm mt-2">{assistant.description}</p>
             <p className="text-sm mt-4">How can I help you today?</p>
-            
+
             <Button
               onClick={() => setShowWorkflowTrigger(!showWorkflowTrigger)}
               className="mt-6"
@@ -393,10 +493,10 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
             </div>
           ))
         )}
-        
+
         {showWorkflowTrigger && (
           <div className="mt-8">
-            <WorkflowTrigger 
+            <WorkflowTrigger
               onTriggerWorkflow={handleWorkflowTrigger}
               isLoading={isLoading}
             />

@@ -1,21 +1,23 @@
 import { z } from 'zod';
-import type { EventStepConfig, Handlers } from 'motia';
+import type { EventConfig, Handlers } from 'motia';
 import { groqService } from '../services/groq.service';
 import { azureOpenAI } from '../services/azure-openai.service';
 import { agentPrompts } from '../src/mastra/config';
 import { OpenAI } from 'openai';
 
-export const config: EventStepConfig = {
+const inputSchema = z.object({
+  workflowId: z.string(),
+  stepIndex: z.number(),
+  agent: z.string(),
+  task: z.string(),
+});
+
+export const config: EventConfig = {
   type: 'event',
   name: 'AgentExecutor',
   subscribes: ['workflow.agent.started'],
-  emits: ['workflow.agent.completed', 'workflow.agent.progress'],
-  input: z.object({
-    workflowId: z.string(),
-    stepIndex: z.number(),
-    agent: z.string(),
-    task: z.string(),
-  }),
+  emits: ['workflow.agent.completed', 'workflow.agent.progress', 'workflow.completed', 'workflow.agent.started'],
+  input: inputSchema,
 };
 
 // Simulate agent thinking process with intermediate updates
@@ -151,7 +153,7 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     });
 
     // Get workflow state
-    const workflow = await state.get('workflows', workflowId);
+    const workflow: any = await state.get('workflows', workflowId);
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
     }
@@ -195,7 +197,7 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
 
     // Emit agent completed event
     await emit({
-      topic: 'workflow.agent.completed',
+      topic: 'workflow.agent.completed' as any,
       data: {
         workflowId,
         stepIndex,
@@ -204,17 +206,39 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
         result: agentResponse,
         timestamp: new Date().toISOString(),
       },
-    });
+    } as any);
 
-    // Check if this was the last agent
+    // Check if this was the last agent or trigger the next one
     if (stepIndex === workflow.steps.length - 1) {
+      // This was the last agent - workflow complete
       await emit({
-        topic: 'workflow.completed',
+        topic: 'workflow.completed' as any,
         data: {
           workflowId,
           results: updatedResults,
           completedAt: new Date().toISOString(),
         },
+      } as any);
+    } else {
+      // Trigger the next agent in sequence
+      const nextStep = workflow.steps[stepIndex + 1];
+      
+      await emit({
+        topic: 'workflow.agent.started',
+        data: {
+          workflowId,
+          stepIndex: stepIndex + 1,
+          agent: nextStep.agent,
+          task: nextStep.task,
+        },
+      });
+      
+      // Update workflow state for next step
+      await state.set('workflows', `${workflowId}:step:${stepIndex + 1}`, {
+        agent: nextStep.agent,
+        task: nextStep.task,
+        status: 'processing',
+        startedAt: new Date().toISOString(),
       });
     }
 
@@ -235,7 +259,7 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     });
     
     await emit({
-      topic: 'workflow.agent.completed',
+      topic: 'workflow.agent.completed' as any,
       data: {
         workflowId,
         stepIndex,
@@ -244,6 +268,6 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
         error: errorMessage,
         timestamp: new Date().toISOString(),
       },
-    });
+    } as any);
   }
 };

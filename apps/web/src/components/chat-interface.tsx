@@ -83,11 +83,41 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
     }
   };
 
+  const pollWorkflowResults = async (workflowId: string): Promise<string> => {
+    const maxAttempts = 60; // Poll for up to 60 seconds
+    let attempts = 0;
+    
+    return new Promise((resolve) => {
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        
+        try {
+          const response = await fetch(`/api/workflow/${workflowId}/result`);
+          const data = await response.json();
+          
+          if (data.status === 'completed') {
+            clearInterval(pollInterval);
+            resolve(data.combinedResponse || 'Workflow completed successfully.');
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            resolve('⏱️ Workflow is taking longer than expected. It may still be running in the background.');
+          }
+        } catch (error) {
+          console.error('Error polling workflow results:', error);
+          if (attempts >= 5) {
+            clearInterval(pollInterval);
+            resolve('Error retrieving workflow results. Please check if the backend is running.');
+          }
+        }
+      }, 1000); // Poll every second
+    });
+  };
+
   const defaultMessageHandler = async (message: string): Promise<string> => {
     try {
       // Use Next.js API route as proxy to avoid CORS issues
       console.log('Sending chat request via Next.js proxy');
-      const response = await fetch('/api/test', {
+      const response = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,6 +136,18 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
       }
 
       const data = await response.json();
+      
+      // Handle workflow responses
+      if (data.isWorkflow && data.triggered) {
+        // Start polling for results
+        const results = await pollWorkflowResults(data.workflowId);
+        return `🚀 ${data.message}\n\n---\n\n${results}`;
+      } else if (data.triggered === false) {
+        // Workflow detection returned false, show suggestions
+        return data.message + '\n\nTry prompts like:\n' + 
+          data.suggestions?.map((s: { samplePrompts: string[] }) => `• "${s.samplePrompts[0]}"`).join('\n');
+      }
+      
       return data.response;
     } catch (error) {
       console.error('Fetch error:', error);
