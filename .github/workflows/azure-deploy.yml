@@ -214,8 +214,19 @@ jobs:
     - name: Build frontend
       run: |
         cd apps/web
+        
+        # Remove any conflicting app directory
+        rm -rf app/
+        
         # Build Next.js in standalone mode
         npm run build
+        
+        # Verify standalone build was created
+        if [ ! -d ".next/standalone" ]; then
+          echo "ERROR: Standalone build not created!"
+          ls -la .next/
+          exit 1
+        fi
       env:
         NEXT_PUBLIC_API_URL: https://${{ env.AZURE_WEBAPP_NAME_BACKEND }}.azurewebsites.net
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fuaogvgmdgndldimnnrs.supabase.co' }}
@@ -232,83 +243,106 @@ jobs:
           echo "Using Next.js standalone build"
           mkdir -p deploy-package
           
-          # For monorepo: copy the app-specific files
+          # For monorepo: copy ALL files from standalone
           if [ -d ".next/standalone/apps/web" ]; then
             echo "Monorepo structure detected"
-            cp -r .next/standalone/apps/web/* deploy-package/
-            cp -r .next/standalone/apps/web/.next deploy-package/ 2>/dev/null || true
+            # Copy the entire standalone output
+            cp -r .next/standalone/* deploy-package/
             
-            # Copy node_modules from standalone root (npm creates flat structure)
-            if [ -d ".next/standalone/node_modules" ]; then
-              echo "Copying standalone node_modules..."
-              cp -r .next/standalone/node_modules deploy-package/
+            # Ensure .next directory from app is in the right place
+            if [ ! -d "deploy-package/.next" ] && [ -d ".next/standalone/apps/web/.next" ]; then
+              echo "Moving .next directory to root"
+              cp -r .next/standalone/apps/web/.next deploy-package/
             fi
           else
             echo "Standard structure"
             cp -rL .next/standalone/* deploy-package/
           fi
           
-          # Copy static files separately (not included in standalone)
-          cp -r .next/static deploy-package/.next/ 2>/dev/null || true
-          cp -r public deploy-package/ 2>/dev/null || true
+          # Copy static files (CRITICAL - must be at correct path)
+          echo "Copying static files..."
+          if [ -d "deploy-package/apps/web/.next" ]; then
+            # Monorepo structure - ensure static files are in the right place
+            mkdir -p deploy-package/apps/web/.next
+            cp -r .next/static deploy-package/apps/web/.next/static 2>/dev/null || true
+            cp -r public deploy-package/apps/web/public 2>/dev/null || true
+          else
+            # Standard structure
+            mkdir -p deploy-package/.next
+            cp -r .next/static deploy-package/.next/static 2>/dev/null || true
+            cp -r public deploy-package/public 2>/dev/null || true
+          fi
+          
+          # Copy our custom server.js wrapper to root
+          cp server.js deploy-package/server.js 2>/dev/null || true
+          
+          # Debug: Show structure
+          echo "Deployment package structure:"
+          find deploy-package -type f -name "server.js" | head -5
+          find deploy-package -type d -name ".next" | head -5
           
         else
-          echo "Standalone build not found, using regular build"
-          mkdir -p deploy-package
-          
-          # Copy the built app
-          cp -r .next deploy-package/
-          cp -r public deploy-package/ 2>/dev/null || true
-          cp package.json deploy-package/
-          
-          # Copy minimal node_modules
-          mkdir -p deploy-package/node_modules
-          for dep in next react react-dom; do
-            if [ -d "node_modules/$dep" ]; then
-              cp -r "node_modules/$dep" deploy-package/node_modules/
-            fi
-          done
+          echo "ERROR: Standalone build not found!"
+          echo "Contents of .next directory:"
+          ls -la .next/
+          exit 1
         fi
         
         # Create startup script
         cat > deploy-package/startup.sh << 'STARTUP_EOF'
         #!/bin/bash
-        echo "=== Starting Next.js server ==="
+        echo "=== Starting Next.js server on Azure ==="
         cd /home/site/wwwroot
         
+        # Debug: Show environment
+        echo "Environment variables:"
+        echo "NODE_ENV: ${NODE_ENV}"
+        echo "PORT: ${PORT:-8080}"
+        echo "WEBSITES_PORT: ${WEBSITES_PORT}"
+        echo "NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}"
+        
         # Debug: Show what files are present
+        echo ""
         echo "Files in /home/site/wwwroot:"
         ls -la
         
-        # Check for node_modules - standalone build should have them
-        if [ ! -d "node_modules" ]; then
-            echo "ERROR: node_modules not found for standalone build!"
-            echo "This is a critical error - standalone builds must include node_modules"
+        # Set required environment variables
+        export NODE_ENV=production
+        export PORT=${WEBSITES_PORT:-${PORT:-8080}}
+        export HOSTNAME="0.0.0.0"
+        
+        # Check for standalone server.js in different locations
+        if [ -f "apps/web/server.js" ]; then
+            echo "Starting monorepo Next.js server..."
+            cd apps/web
+            exec node server.js
+        elif [ -f "server.js" ]; then
+            echo "Starting server.js from root..."
+            exec node server.js
+        elif [ -f ".next/standalone/server.js" ]; then
+            echo "Starting Next.js standalone server directly..."
+            cd .next/standalone
+            exec node server.js
+        elif [ -f ".next/standalone/apps/web/server.js" ]; then
+            echo "Starting monorepo Next.js standalone server..."
+            cd .next/standalone/apps/web
+            exec node server.js
+        else
+            echo "ERROR: No server.js found!"
+            echo "Checking .next directory structure:"
+            ls -la .next/ 2>/dev/null || echo ".next not found"
+            echo ""
+            echo "Checking for standalone build:"
+            ls -la .next/standalone/ 2>/dev/null || echo "No standalone build found"
             
-            # Try recovery by checking common Azure locations
-            if [ -d "/node_modules" ]; then
-                echo "Found node_modules at /node_modules, creating symlink..."
-                ln -sfn /node_modules ./node_modules
-            elif [ -f "node_modules.tar.gz" ]; then
-                echo "Found node_modules.tar.gz, extracting..."
-                tar -xzf node_modules.tar.gz
+            # Last resort - try to start with npx
+            if [ -f "package.json" ] && [ -d "node_modules" ]; then
+                echo "Attempting to start with npx next start..."
+                exec npx next start -H 0.0.0.0 -p ${PORT}
             else
-                echo "FATAL: Cannot find node_modules anywhere!"
+                echo "FATAL: Cannot start Next.js application"
                 exit 1
             fi
-        else
-            echo "✓ node_modules directory found"
-        fi
-        
-        # Check if this is a standalone build
-        if [ -f "server.js" ]; then
-            echo "Starting Next.js standalone server on port ${PORT:-8080}..."
-            PORT=${PORT:-8080} node server.js
-        else
-            echo "ERROR: server.js not found!"
-            echo "Available files:"
-            ls -la
-            exit 1
         fi
         STARTUP_EOF
         chmod +x deploy-package/startup.sh

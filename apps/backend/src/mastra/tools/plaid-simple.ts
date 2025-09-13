@@ -20,9 +20,9 @@ export async function createLinkToken(userId: string) {
     console.log('Client ID configured:', !!process.env.PLAID_CLIENT_ID);
     console.log('Secret configured:', !!process.env.PLAID_SECRET);
     
-    // Mock response for development when credentials are not configured
-    if (!process.env.PLAID_CLIENT_ID || process.env.PLAID_CLIENT_ID === 'your_plaid_client_id') {
-      console.log('Using mock Plaid response for development');
+    // Only use mock if credentials are explicitly not configured
+    if (!process.env.PLAID_CLIENT_ID || !process.env.PLAID_SECRET) {
+      console.log('Warning: Plaid credentials not configured, using mock response');
       return {
         link_token: `link-sandbox-mock-${Date.now()}-${userId}`,
         expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes
@@ -37,6 +37,7 @@ export async function createLinkToken(userId: string) {
         client_user_id: userId,
       },
       products: [Products.Auth, Products.Transactions],
+      redirect_uri: process.env.PLAID_REDIRECT_URI || undefined,
     });
     
     return {
@@ -52,9 +53,9 @@ export async function createLinkToken(userId: string) {
 
 export async function exchangePublicToken(publicToken: string) {
   try {
-    // Mock response for development when credentials are not configured
-    if (!process.env.PLAID_CLIENT_ID || process.env.PLAID_CLIENT_ID === 'your_plaid_client_id') {
-      console.log('Using mock Plaid exchange response for development');
+    // Only use mock if credentials are explicitly not configured
+    if (!process.env.PLAID_CLIENT_ID || !process.env.PLAID_SECRET) {
+      console.log('Warning: Plaid credentials not configured, using mock exchange response');
       return {
         access_token: `access-sandbox-mock-${Date.now()}`,
         item_id: `item-mock-${Date.now()}`,
