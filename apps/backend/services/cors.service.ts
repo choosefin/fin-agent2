@@ -32,15 +32,17 @@ export class CorsService {
    */
   private getEnvironmentConfig(): CorsConfig {
     const isProduction = process.env.NODE_ENV === 'production';
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+    // Parse allowed origins from environment or use defaults
+    const envOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
+    const allowedOrigins = envOrigins.length > 0 ? envOrigins : [
+      'https://finagent-web-pps457j4wjrc6.azurewebsites.net',
+      'http://finagent-web-pps457j4wjrc6.azurewebsites.net'
+    ];
 
     if (isProduction) {
       // Production configuration - strict
       return {
-        origin: allowedOrigins.length > 0 ? allowedOrigins : [
-          'https://app.example.com',
-          'https://www.example.com',
-        ],
+        origin: allowedOrigins,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: [
           'Content-Type',

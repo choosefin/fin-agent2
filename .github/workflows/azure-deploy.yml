@@ -459,6 +459,46 @@ jobs:
             {
               "name": "POST_BUILD_COMMAND",
               "value": ""
+            },
+            {
+              "name": "ALLOWED_ORIGINS",
+              "value": "https://finagent-web-pps457j4wjrc6.azurewebsites.net,http://finagent-web-pps457j4wjrc6.azurewebsites.net"
+            },
+            {
+              "name": "GROQ_API_KEY",
+              "value": "${{ secrets.GROQ_API_KEY }}"
+            },
+            {
+              "name": "AZURE_OPENAI_API_KEY",
+              "value": "${{ secrets.AZURE_OPENAI_API_KEY }}"
+            },
+            {
+              "name": "AZURE_OPENAI_ENDPOINT",
+              "value": "${{ secrets.AZURE_OPENAI_ENDPOINT }}"
+            },
+            {
+              "name": "PLAID_CLIENT_ID",
+              "value": "${{ secrets.PLAID_CLIENT_ID }}"
+            },
+            {
+              "name": "PLAID_SECRET",
+              "value": "${{ secrets.PLAID_SECRET }}"
+            },
+            {
+              "name": "PLAID_ENV",
+              "value": "sandbox"
+            },
+            {
+              "name": "SUPABASE_SERVICE_KEY",
+              "value": "${{ secrets.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "NEXT_PUBLIC_SUPABASE_URL",
+              "value": "${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fuaogvgmdgndldimnnrs.supabase.co' }}"
+            },
+            {
+              "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+              "value": "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1YW9ndmdtZGduZGxkaW1ubnJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM4NTU4OTAsImV4cCI6MjA0OTQzMTg5MH0.vFq6l6zVbG3M7MJBCymVcjJXNPiCrBvPBfqDOvLxvxo' }}"
             }
           ]
 
