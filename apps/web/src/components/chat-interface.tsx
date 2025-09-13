@@ -87,7 +87,7 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
     try {
       // Use Next.js API route as proxy to avoid CORS issues
       console.log('Sending chat request via Next.js proxy');
-      const response = await fetch('/api/test', {
+      const response = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,6 +106,16 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
       }
 
       const data = await response.json();
+      
+      // Handle workflow responses
+      if (data.isWorkflow && data.triggered) {
+        return `🚀 ${data.message}\n\nWorkflow ID: ${data.workflowId}\n\nThe multi-agent workflow is now processing your request...`;
+      } else if (data.triggered === false) {
+        // Workflow detection returned false, show suggestions
+        return data.message + '\n\nTry prompts like:\n' + 
+          data.suggestions?.map((s: any) => `• "${s.samplePrompts[0]}"`).join('\n');
+      }
+      
       return data.response;
     } catch (error) {
       console.error('Fetch error:', error);

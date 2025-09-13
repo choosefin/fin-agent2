@@ -14,8 +14,8 @@ export default function TestChatPage() {
     setResponse('');
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
-      const res = await fetch(`${apiUrl}/api/chat`, {
+      // Use the assistant API proxy route which handles workflow detection
+      const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
