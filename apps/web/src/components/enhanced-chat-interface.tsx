@@ -191,6 +191,56 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     };
   }, [handleWorkflowEvent]);
 
+  const pollWorkflowResults = async (workflowId: string) => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+    const maxAttempts = 60; // Poll for up to 60 seconds
+    let attempts = 0;
+    
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        const response = await fetch(`${apiUrl}/api/workflow/${workflowId}/result`);
+        const data = await response.json();
+        
+        if (data.status === 'completed') {
+          clearInterval(pollInterval);
+          
+          // Display the combined response
+          const resultMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: data.combinedResponse || 'Workflow completed successfully.',
+            timestamp: new Date(),
+            assistantType: 'workflow',
+            workflowId: workflowId,
+            isWorkflowResult: true,
+          };
+          setMessages(prev => [...prev, resultMessage]);
+          
+          // Clear the active workflow
+          setActiveWorkflow(null);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          const timeoutMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'system',
+            content: '⏱️ Workflow is taking longer than expected. It may still be running in the background.',
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, timeoutMessage]);
+          setActiveWorkflow(null);
+        }
+      } catch (error) {
+        console.error('Error polling workflow results:', error);
+        if (attempts >= 5) {
+          clearInterval(pollInterval);
+          setActiveWorkflow(null);
+        }
+      }
+    }, 1000); // Poll every second
+  };
+
   const triggerWorkflow = async (message: string) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
     
@@ -237,33 +287,78 @@ export function EnhancedChatInterface({ assistant, onSendMessage }: EnhancedChat
     setShowWorkflowTrigger(false);
 
     try {
-      // Check if this should trigger a workflow
-      const workflowResponse = await triggerWorkflow(userMessage.content);
+      // Send to the assistant API which handles routing
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          assistantType: assistant.id,
+          userId: 'user-' + Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
       
-      if (workflowResponse.triggered) {
+      if (data.isWorkflow && data.triggered) {
         // Workflow was triggered
         const systemMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'system',
-          content: `🚀 ${workflowResponse.message}`,
+          content: `🚀 ${data.message}`,
           timestamp: new Date(),
-          workflowId: workflowResponse.workflowId,
+          workflowId: data.workflowId,
         };
         setMessages((prev) => [...prev, systemMessage]);
-      } else {
-        // Regular chat message
-        const response = await (onSendMessage || defaultMessageHandler)(
-          userMessage.content
-        );
-
+        
+        // Set up the active workflow for visualization
+        if (data.workflow) {
+          const workflow: ActiveWorkflow = {
+            workflowId: data.workflowId,
+            name: data.workflow.name,
+            steps: data.workflow.steps.map((step: any, index: number) => ({
+              index,
+              agent: step.agent,
+              task: step.task,
+              status: 'pending',
+            })),
+            progress: {
+              completed: 0,
+              total: data.workflow.steps.length,
+              percentage: 0,
+            },
+          };
+          setActiveWorkflow(workflow);
+        }
+        
+        // Poll for workflow results
+        pollWorkflowResults(data.workflowId);
+      } else if (data.triggered === false) {
+        // Workflow detection returned false, show suggestions
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: typeof response === 'string' ? response : response.response,
+          content: data.message + '\n\nTry prompts like:\n' + 
+            data.suggestions?.map((s: any) => `• "${s.samplePrompts[0]}"`).join('\n'),
           timestamp: new Date(),
           assistantType: assistant.id,
         };
-
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        // Regular chat response
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response,
+          timestamp: new Date(),
+          assistantType: assistant.id,
+        };
         setMessages((prev) => [...prev, assistantMessage]);
       }
     } catch (error) {

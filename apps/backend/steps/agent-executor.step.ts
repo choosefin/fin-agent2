@@ -9,7 +9,7 @@ export const config: EventStepConfig = {
   type: 'event',
   name: 'AgentExecutor',
   subscribes: ['workflow.agent.started'],
-  emits: ['workflow.agent.completed', 'workflow.agent.progress'],
+  emits: ['workflow.agent.completed', 'workflow.agent.progress', 'workflow.completed', 'workflow.agent.started'],
   input: z.object({
     workflowId: z.string(),
     stepIndex: z.number(),
@@ -206,8 +206,9 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
       },
     });
 
-    // Check if this was the last agent
+    // Check if this was the last agent or trigger the next one
     if (stepIndex === workflow.steps.length - 1) {
+      // This was the last agent - workflow complete
       await emit({
         topic: 'workflow.completed',
         data: {
@@ -215,6 +216,27 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
           results: updatedResults,
           completedAt: new Date().toISOString(),
         },
+      });
+    } else {
+      // Trigger the next agent in sequence
+      const nextStep = workflow.steps[stepIndex + 1];
+      
+      await emit({
+        topic: 'workflow.agent.started',
+        data: {
+          workflowId,
+          stepIndex: stepIndex + 1,
+          agent: nextStep.agent,
+          task: nextStep.task,
+        },
+      });
+      
+      // Update workflow state for next step
+      await state.set('workflows', `${workflowId}:step:${stepIndex + 1}`, {
+        agent: nextStep.agent,
+        task: nextStep.task,
+        status: 'processing',
+        startedAt: new Date().toISOString(),
       });
     }
 
