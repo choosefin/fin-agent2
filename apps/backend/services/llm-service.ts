@@ -52,6 +52,98 @@ export class LLMService {
     }
   }
 
+  async process(
+    message: string,
+    assistantType: string,
+    context: { traceId: string; userId: string }
+  ): Promise<LLMResponse> {
+    const systemPrompt = this.getSystemPrompt(assistantType);
+    
+    // Try Groq first
+    if (this.groqClient) {
+      try {
+        const completion = await this.groqClient.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message },
+          ],
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.7,
+          max_tokens: 2048,
+          stream: false,
+        });
+
+        return {
+          content: completion.choices[0]?.message?.content || '',
+          provider: 'groq',
+          model: 'llama-3.3-70b-versatile',
+          tokensUsed: completion.usage?.total_tokens,
+        };
+      } catch (error) {
+        console.error('Groq API failed:', error);
+      }
+    }
+
+    // Fallback to Azure OpenAI
+    if (this.azureClient) {
+      try {
+        const completion = await this.azureClient.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message },
+          ],
+          model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4',
+          temperature: 0.7,
+          max_tokens: 2048,
+          stream: false,
+        });
+
+        return {
+          content: completion.choices[0]?.message?.content || '',
+          provider: 'azure',
+          model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4',
+          tokensUsed: completion.usage?.total_tokens,
+        };
+      } catch (error) {
+        console.error('Azure OpenAI API failed:', error);
+      }
+    }
+
+    // Fallback to OpenAI
+    if (this.openaiClient) {
+      try {
+        const completion = await this.openaiClient.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message },
+          ],
+          model: 'gpt-4-turbo-preview',
+          temperature: 0.7,
+          max_tokens: 2048,
+          stream: false,
+        });
+
+        return {
+          content: completion.choices[0]?.message?.content || '',
+          provider: 'openai',
+          model: 'gpt-4-turbo-preview',
+          tokensUsed: completion.usage?.total_tokens,
+        };
+      } catch (error) {
+        console.error('OpenAI API failed:', error);
+        throw new Error('All LLM providers failed');
+      }
+    }
+
+    // No providers configured - return mock response
+    return {
+      content: `[${assistantType.toUpperCase()} ASSISTANT]\n\nI'm responding to your message: "${message}"\n\nTo enable AI responses, please configure an LLM provider (Groq, Azure OpenAI, or OpenAI) in your environment variables.`,
+      provider: 'mock',
+      model: 'none',
+      tokensUsed: 0,
+    };
+  }
+
   async processWithStreaming(
     message: string,
     assistantType: string,

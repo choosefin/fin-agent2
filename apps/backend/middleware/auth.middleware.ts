@@ -131,7 +131,7 @@ export async function authorize(
 
     return true;
   } catch (error) {
-    logger.error('Authorization check failed', { error: error.message });
+    logger.error('Authorization check failed', { error: error instanceof Error ? error.message : 'Unknown error' });
     return false;
   }
 }

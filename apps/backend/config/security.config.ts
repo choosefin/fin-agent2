@@ -1,8 +1,8 @@
 import { authService } from '../services/auth.service';
 import { encryptionService } from '../services/encryption.service';
 import { secretsService } from '../services/secrets.service';
-import { corsService } from '../services/cors.service';
-import { withAuth, withCors } from '../middleware/auth.middleware';
+import { corsService, withCors } from '../services/cors.service';
+import { withAuth } from '../middleware/auth.middleware';
 
 /**
  * Comprehensive security configuration for the application
@@ -21,19 +21,19 @@ export const securityConfig = {
   rateLimit: {
     global: {
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 1000, // limit each IP to 1000 requests per windowMs
+      limit: 1000, // limit each IP to 1000 requests per windowMs
     },
     api: {
       windowMs: 60 * 1000, // 1 minute
-      max: 100, // limit each user to 100 API requests per minute
+      limit: 100, // limit each user to 100 API requests per minute
     },
     auth: {
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5, // limit login attempts to 5 per 15 minutes
+      limit: 5, // limit login attempts to 5 per 15 minutes
     },
     plaid: {
       windowMs: 60 * 1000, // 1 minute
-      max: 20, // limit Plaid operations to 20 per minute
+      limit: 20, // limit Plaid operations to 20 per minute
     },
   },
 

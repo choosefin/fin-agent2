@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Azure App Service startup wrapper for Next.js standalone build
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const path = require('path');
 const { createServer } = require('http');

@@ -46,7 +46,7 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
   const [activeWorkflow, setActiveWorkflow] = useState<ActiveWorkflow | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,78 +56,51 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
     scrollToBottom();
   }, [messages]);
 
-  const handleWorkflowEvent = useCallback((event: MessageEvent) => {
+  const pollWorkflowStatus = useCallback(async (workflowId: string) => {
     try {
-      const data = JSON.parse(event.data);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/workflow/${workflowId}/status`);
       
-      switch (data.type) {
-        case 'workflow.started':
-          // Initialize workflow with agents
-          if (data.workflowId === activeWorkflow?.workflowId) {
-            setActiveWorkflow(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                agents: data.agents?.map((agentId: string) => ({
-                  id: agentId,
-                  name: agentId.charAt(0).toUpperCase() + agentId.slice(1),
-                  status: 'pending' as const,
-                })) || prev.agents,
-              };
-            });
+      if (!response.ok) {
+        console.error('Failed to fetch workflow status');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Update workflow status based on the response
+      if (data.workflowId === workflowId) {
+        // Update agent statuses from the response
+        setActiveWorkflow(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            agents: data.steps?.map((step: { agent: string; status: string; result?: { result?: string } | string; task?: string; startedAt?: string; completedAt?: string }) => ({
+              id: step.agent,
+              name: step.agent.charAt(0).toUpperCase() + step.agent.slice(1),
+              status: step.status === 'completed' ? 'completed' : 
+                      step.status === 'processing' ? 'processing' : 'pending',
+              result: typeof step.result === 'object' ? step.result?.result : step.result,
+              startTime: step.startedAt ? new Date(step.startedAt) : undefined,
+              endTime: step.completedAt ? new Date(step.completedAt) : undefined,
+              currentAction: step.task,
+              progress: step.status === 'completed' ? 100 : 
+                       step.status === 'processing' ? 50 : 0,
+            })) || prev.agents,
+          };
+        });
+        
+        // If workflow is completed, stop polling and show results
+        if (data.status === 'completed') {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
           }
-          break;
-
-        case 'workflow.agent.started':
-          // Update agent status to processing
-          if (data.workflowId === activeWorkflow?.workflowId) {
-            setActiveWorkflow(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                agents: prev.agents.map(agent => 
-                  agent.id === data.agent
-                    ? { 
-                        ...agent, 
-                        status: 'processing' as const,
-                        startTime: new Date(),
-                        currentAction: data.task || 'Analyzing...'
-                      }
-                    : agent
-                ),
-              };
-            });
-          }
-          break;
-
-        case 'workflow.agent.completed':
-          // Update agent status to completed
-          if (data.workflowId === activeWorkflow?.workflowId) {
-            setActiveWorkflow(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                agents: prev.agents.map(agent => 
-                  agent.id === data.agent
-                    ? { 
-                        ...agent, 
-                        status: data.error ? 'error' as const : 'completed' as const,
-                        endTime: new Date(),
-                        result: data.result,
-                        progress: 100,
-                      }
-                    : agent
-                ),
-              };
-            });
-          }
-          break;
-
-        case 'workflow.completed':
+          setIsLoading(false);
+          
           // Add compiled results message
-          if (data.workflowId === activeWorkflow?.workflowId) {
-            const results = data.results || [];
-            const compiledMessage = results.map((r: { agent: string; result: string }) => 
+          if (data.results && data.results.length > 0) {
+            const compiledMessage = data.results.map((r: { agent: string; result: string }) => 
               `**${r.agent.toUpperCase()} Analysis:**\n\n${r.result}`
             ).join('\n\n---\n\n');
 
@@ -138,54 +111,41 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
               timestamp: new Date(),
               workflowId: data.workflowId,
             }]);
-
-            // Clear workflow and close SSE connection
-            setTimeout(() => {
-              setActiveWorkflow(null);
-              if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-                eventSourceRef.current = null;
-              }
-            }, 5000);
-            setIsLoading(false);
           }
-          break;
+          
+          // Clear workflow after 5 seconds
+          setTimeout(() => {
+            setActiveWorkflow(null);
+          }, 5000);
+        }
       }
     } catch (error) {
-      console.error('Failed to parse SSE event:', error);
+      console.error('Failed to poll workflow status:', error);
     }
-  }, [activeWorkflow]);
+  }, []);
 
   // Function to establish SSE connection only when needed
-  const connectToWorkflowStream = useCallback((workflowId: string) => {
-    // Close any existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+  // Start polling for workflow status
+  const startPollingWorkflow = useCallback((workflowId: string) => {
+    // Clear any existing polling
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
     }
+    
+    // Initial poll
+    pollWorkflowStatus(workflowId);
+    
+    // Set up polling interval (every 1 second)
+    pollingIntervalRef.current = setInterval(() => {
+      pollWorkflowStatus(workflowId);
+    }, 1000);
+  }, [pollWorkflowStatus]);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const eventSource = new EventSource(`${apiUrl}/api/workflow/stream`);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onmessage = handleWorkflowEvent;
-
-    eventSource.onerror = (error) => {
-      console.warn('SSE connection error, will retry:', error);
-      // EventSource will automatically reconnect
-    };
-
-    eventSource.onopen = () => {
-      console.log('SSE connection established for workflow:', workflowId);
-    };
-
-    return eventSource;
-  }, [handleWorkflowEvent]);
-
-  // Cleanup SSE connection on unmount
+  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
       }
     };
   }, []);
@@ -233,12 +193,12 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
 
       const data = await response.json();
 
-      if (data.type === 'workflow') {
+      if (data.workflowId) {
         // Workflow was triggered
         setMessages(prev => [...prev, {
           id: `system-${Date.now()}`,
           role: 'system',
-          content: `🚀 ${data.message}\n\nInitializing ${data.agents.length} specialized agents for comprehensive analysis...`,
+          content: `🚀 ${data.message || 'Workflow initiated'}\n\nInitializing ${data.agents?.length || 0} specialized agents for comprehensive analysis...`,
           timestamp: new Date(),
           workflowId: data.workflowId,
         }]);
@@ -246,16 +206,16 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
         // Initialize workflow status
         setActiveWorkflow({
           workflowId: data.workflowId,
-          estimatedTime: data.estimatedTime,
-          agents: data.agents.map((agentId: string) => ({
+          estimatedTime: data.estimatedTime || 30,
+          agents: (data.agents || []).map((agentId: string) => ({
             id: agentId,
             name: agentId.charAt(0).toUpperCase() + agentId.slice(1),
             status: 'pending' as const,
           })),
         });
 
-        // NOW connect to SSE stream for this specific workflow
-        connectToWorkflowStream(data.workflowId);
+        // Start polling for workflow status
+        startPollingWorkflow(data.workflowId);
         
       } else {
         // Regular chat response
@@ -302,9 +262,9 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
             estimatedTime={activeWorkflow.estimatedTime}
             onClose={() => {
               setActiveWorkflow(null);
-              if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-                eventSourceRef.current = null;
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
               }
             }}
           />

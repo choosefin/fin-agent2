@@ -2,6 +2,7 @@ import type { ApiRouteConfig, Handlers } from 'motia'
 import { z } from 'zod'
 import { LLMService } from '../services/llm-service'
 import { WorkflowDetector } from '../services/workflow-detector'
+import { agentPrompts } from '../src/mastra/config'
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -10,7 +11,7 @@ export const config: ApiRouteConfig = {
   method: 'POST',
   bodySchema: z.object({
     message: z.string(),
-    assistantType: z.string().optional(),
+    assistantType: z.enum(['general', 'analyst', 'trader', 'advisor', 'riskManager', 'economist']).optional(),
     userId: z.string(),
     context: z.object({
       symbols: z.array(z.string()).optional(),
@@ -34,7 +35,7 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
     const shouldTriggerWorkflow = await workflowDetector.analyze(message, context)
 
     if (shouldTriggerWorkflow) {
-      // Workflow path
+      // Workflow path - return JSON response with workflowId
       logger.info('Workflow detected, triggering multi-agent analysis', { traceId })
       
       // Emit workflow trigger event
@@ -49,23 +50,19 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
         },
       })
 
-      // Return workflow detection response
+      // Return JSON response with workflow ID for polling
       return {
         status: 200,
         body: {
-          type: 'workflow',
           workflowId: traceId,
-          message: 'Initiating multi-agent analysis...',
+          message: 'Workflow initiated successfully',
           agents: shouldTriggerWorkflow.agents,
           estimatedTime: shouldTriggerWorkflow.estimatedTime,
         },
-        headers: {
-          'Content-Type': 'application/json',
-        },
       }
     } else {
-      // Regular chat path
-      logger.info('Processing regular chat message', { traceId, assistantType })
+      // Regular chat path - process synchronously and return response
+      logger.info('Processing chat message', { traceId, assistantType })
       
       // Emit chat started event
       await emit({
@@ -73,49 +70,54 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
         data: { traceId, userId, message, assistantType },
       })
 
-      // Initialize LLM service
-      const llmService = new LLMService({})
+      try {
+        // Initialize LLM service
+        const llmService = new LLMService()
 
-      // Process message (simplified for now - no streaming in this version)
-      const response = await llmService.processWithStreaming(
-        message,
-        assistantType,
-        { traceId, userId }
-      )
+        // Process message (without streaming since Motia doesn't support it)
+        const response = await llmService.process(
+          message,
+          assistantType,
+          { traceId, userId }
+        )
 
-      // Store in state
-      await state.set('chats', traceId, {
-        userId,
-        message,
-        response: response.content,
-        assistantType,
-        timestamp: new Date().toISOString(),
-      })
-
-      // Emit completion event
-      await emit({
-        topic: 'chat.completed',
-        data: {
-          traceId,
+        // Store complete response in state
+        await state.set('chats', traceId, {
           userId,
+          message,
           response: response.content,
-        },
-      })
-
-      // Return chat response
-      return {
-        status: 200,
-        body: {
-          type: 'chat',
-          response: response.content,
+          assistantType,
           provider: response.provider,
           model: response.model,
-          tokensUsed: response.tokensUsed,
-          traceId,
-        },
-        headers: {
-          'Content-Type': 'application/json',
-        },
+          timestamp: new Date().toISOString(),
+        })
+
+        // Emit completion event
+        await emit({
+          topic: 'chat.completed',
+          data: {
+            traceId,
+            userId,
+            response: response.content,
+            provider: response.provider,
+            model: response.model,
+          },
+        })
+
+        // Return JSON response
+        return {
+          status: 200,
+          body: {
+            traceId,
+            response: response.content,
+            assistantType,
+            llmProvider: response.provider,
+            model: response.model,
+          },
+        }
+      } catch (error) {
+        logger.error('Error processing chat', { error: error instanceof Error ? error.message : 'Unknown error', traceId })
+        throw error
       }
     }
   } catch (error) {
