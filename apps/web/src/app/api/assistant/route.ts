@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     
     // Choose the appropriate endpoint
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const endpoint = isWorkflow ? '/api/workflow/trigger' : '/api/chat';
+    const endpoint = isWorkflow ? '/api/workflow/trigger' : '/api/chat/stream';
     
     console.log(`Routing to ${endpoint} - Workflow detected: ${isWorkflow}`);
     
@@ -131,6 +131,7 @@ export async function POST(request: Request) {
       });
     }
     
+    // Pass through all fields including chart data
     return NextResponse.json(data);
   } catch (error) {
     console.error('Proxy error:', error);

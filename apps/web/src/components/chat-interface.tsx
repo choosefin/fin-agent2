@@ -14,11 +14,21 @@ interface Message {
   content: string;
   timestamp: Date;
   assistantType?: string;
+  chartHtml?: string;
+  chartIframe?: string;
+  symbol?: string;
+  hasChart?: boolean;
 }
 
 interface ChatInterfaceProps {
   assistant: AssistantProfile;
-  onSendMessage?: (message: string) => Promise<string>;
+  onSendMessage?: (message: string) => Promise<string | {
+    content: string;
+    chartHtml?: string;
+    chartIframe?: string;
+    symbol?: string;
+    hasChart?: boolean;
+  }>;
 }
 
 export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) {
@@ -58,12 +68,18 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
         userMessage.content
       );
 
+      const responseData = typeof response === 'string' ? { content: response } : response;
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: responseData.content,
         timestamp: new Date(),
         assistantType: assistant.id,
+        chartHtml: responseData.chartHtml,
+        chartIframe: responseData.chartIframe,
+        symbol: responseData.symbol,
+        hasChart: responseData.hasChart,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -141,14 +157,32 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
       if (data.isWorkflow && data.triggered) {
         // Start polling for results
         const results = await pollWorkflowResults(data.workflowId);
-        return `🚀 ${data.message}\n\n---\n\n${results}`;
+        return {
+          content: `🚀 ${data.message}\n\n---\n\n${results}`,
+          chartHtml: data.chartHtml,
+          chartIframe: data.chartIframe,
+          symbol: data.symbol,
+          hasChart: data.hasChart
+        };
       } else if (data.triggered === false) {
         // Workflow detection returned false, show suggestions
-        return data.message + '\n\nTry prompts like:\n' + 
-          data.suggestions?.map((s: { samplePrompts: string[] }) => `• "${s.samplePrompts[0]}"`).join('\n');
+        return {
+          content: data.message + '\n\nTry prompts like:\n' + 
+            data.suggestions?.map((s: { samplePrompts: string[] }) => `• "${s.samplePrompts[0]}"`).join('\n'),
+          chartHtml: data.chartHtml,
+          chartIframe: data.chartIframe,
+          symbol: data.symbol,
+          hasChart: data.hasChart
+        };
       }
       
-      return data.response;
+      return {
+        content: data.response,
+        chartHtml: data.chartHtml,
+        chartIframe: data.chartIframe,
+        symbol: data.symbol,
+        hasChart: data.hasChart
+      };
     } catch (error) {
       console.error('Fetch error:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
@@ -255,6 +289,14 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
                     </ReactMarkdown>
                   </div>
                 )}
+                
+                {/* Render TradingView chart if present */}
+                {message.hasChart && message.chartIframe && (
+                  <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div dangerouslySetInnerHTML={{ __html: message.chartIframe }} />
+                  </div>
+                )}
+                
                 <p className="text-xs opacity-70 mt-1">
                   {message.timestamp.toLocaleTimeString()}
                 </p>
