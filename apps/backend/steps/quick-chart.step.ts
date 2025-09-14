@@ -6,11 +6,6 @@ export const config: ApiRouteConfig = {
   name: 'QuickChart',
   method: 'GET',
   path: '/api/chart/:symbol',
-  querySchema: z.object({
-    theme: z.enum(['light', 'dark']).optional(),
-    interval: z.string().optional(),
-    height: z.string().optional(),
-  }),
   emits: ['quick.chart.served'],
   flows: ['market-analysis'],
 };

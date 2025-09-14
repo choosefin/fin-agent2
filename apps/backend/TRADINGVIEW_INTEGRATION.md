@@ -148,15 +148,28 @@ The system recognizes both ticker symbols and company names:
 
 ## Testing
 
-Open `test-tradingview-chart.html` in a browser to test all endpoints:
+Test the TradingView integration with the provided test scripts:
 
 ```bash
 # Start the Motia dev server
 npm run dev
+# Server runs on http://localhost:3000
 
-# Open test page
+# Test the streaming endpoint (primary endpoint for chat)
+node test-stream-chart.js
+
+# Open HTML test page for interactive testing
 open apps/backend/test-tradingview-chart.html
 ```
+
+### Important: API Endpoints
+
+The integration works with both streaming and regular chat endpoints:
+
+- **Stream Endpoint (Primary)**: `POST /api/chat/stream` - Used by the frontend for chat messages
+- **Regular Chat**: `POST /api/chat` - Alternative endpoint with same chart functionality
+- **Direct Chart**: `POST /api/tradingview-chart` - Generate charts directly
+- **Quick Chart**: `GET /api/chart/:symbol` - Direct URL for charts
 
 ## Configuration Options
 

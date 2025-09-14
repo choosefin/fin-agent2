@@ -1,4 +1,4 @@
-interface ChartConfig {
+export interface ChartConfig {
   symbol: string;
   theme?: 'light' | 'dark';
   height?: number;

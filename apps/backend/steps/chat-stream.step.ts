@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { LLMService } from '../services/llm-service'
 import { WorkflowDetector } from '../services/workflow-detector'
 import { agentPrompts } from '../src/mastra/config'
+import { generateTradingViewChart, extractSymbolFromQuery, isChartRequest } from '../services/chart.service'
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -23,6 +24,8 @@ export const config: ApiRouteConfig = {
     'chat.started',
     'workflow.trigger',
     'chat.completed',
+    'chart.requested',
+    'symbol.detected',
   ],
 }
 
@@ -30,6 +33,54 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
   const { message, assistantType = 'general', userId, context } = req.body
   
   try {
+    // Check if the message is requesting a chart
+    const detectedSymbol = extractSymbolFromQuery(message)
+    const chartRequest = isChartRequest(message)
+    
+    if (detectedSymbol && chartRequest) {
+      logger.info('Chart request detected in stream', { symbol: detectedSymbol, traceId })
+      
+      await emit({
+        topic: 'symbol.detected',
+        data: {
+          symbol: detectedSymbol,
+          originalMessage: message,
+          traceId,
+        },
+      })
+
+      // Generate TradingView chart
+      const chartHtml = await generateTradingViewChart({
+        symbol: detectedSymbol,
+        theme: 'light',
+        height: 500,
+        interval: '1D',
+      })
+
+      await emit({
+        topic: 'chart.requested',
+        data: {
+          symbol: detectedSymbol,
+          timestamp: new Date().toISOString(),
+          traceId,
+        },
+      })
+
+      // Return chart response immediately without LLM call
+      return {
+        status: 200,
+        body: {
+          traceId,
+          response: `Here's the interactive chart for ${detectedSymbol.toUpperCase()}:`,
+          assistantType,
+          llmProvider: 'groq',
+          model: 'chart-display',
+          chartHtml,
+          symbol: detectedSymbol,
+          hasChart: true,
+        },
+      }
+    }
     // Detect if this should trigger a workflow
     const workflowDetector = new WorkflowDetector()
     const shouldTriggerWorkflow = await workflowDetector.analyze(message, context)
@@ -104,7 +155,39 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
           },
         })
 
-        // Return JSON response
+        // Check if LLM response mentions a symbol and add chart if appropriate
+        const symbolInResponse = extractSymbolFromQuery(response.content)
+        let chartHtml = null
+        
+        if (symbolInResponse && (response.content.toLowerCase().includes('chart') || 
+                                 response.content.toLowerCase().includes('price') || 
+                                 response.content.toLowerCase().includes('stock'))) {
+          try {
+            chartHtml = await generateTradingViewChart({
+              symbol: symbolInResponse,
+              theme: 'light',
+              height: 500,
+              interval: '1D',
+            })
+            
+            await emit({
+              topic: 'chart.requested',
+              data: {
+                symbol: symbolInResponse,
+                source: 'llm-response',
+                timestamp: new Date().toISOString(),
+                traceId,
+              },
+            })
+          } catch (chartError) {
+            logger.warn('Failed to generate chart for detected symbol', { 
+              symbol: symbolInResponse, 
+              error: chartError 
+            })
+          }
+        }
+
+        // Return JSON response with optional chart
         return {
           status: 200,
           body: {
@@ -113,6 +196,9 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
             assistantType,
             llmProvider: response.provider,
             model: response.model,
+            chartHtml: chartHtml || undefined,
+            symbol: symbolInResponse || undefined,
+            hasChart: !!chartHtml,
           },
         }
       } catch (error) {
