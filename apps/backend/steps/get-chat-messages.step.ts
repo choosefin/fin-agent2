@@ -20,7 +20,7 @@ export const config: ApiRouteConfig = {
   name: 'GetChatMessages',
   method: 'GET',
   path: '/api/chat/sessions/messages',
-  querySchema: z.object({
+  query: z.object({
     sessionId: z.string(),
     threadId: z.string().optional(),
     limit: z.string().optional().transform(val => val ? parseInt(val) : 50),

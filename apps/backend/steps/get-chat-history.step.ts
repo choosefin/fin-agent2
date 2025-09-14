@@ -20,7 +20,7 @@ export const config: ApiRouteConfig = {
   name: 'GetChatHistory',
   method: 'GET',
   path: '/api/chat/sessions',
-  querySchema: z.object({
+  query: z.object({
     userId: z.string(),
     limit: z.string().optional().transform(val => val ? parseInt(val) : 20),
     offset: z.string().optional().transform(val => val ? parseInt(val) : 0),
