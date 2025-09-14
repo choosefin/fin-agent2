@@ -4,6 +4,7 @@ import { OpenAI } from 'openai';
 import { azureOpenAI } from '../services/azure-openai.service';
 import { groqService } from '../services/groq.service';
 import { agentPrompts } from '../src/mastra/config';
+import { generateTradingViewChart, extractSymbolFromQuery } from '../services/chart.service';
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -17,7 +18,7 @@ export const config: ApiRouteConfig = {
     sessionId: z.string().uuid().optional(), // Add optional session ID
     symbols: z.array(z.string()).optional(),
   }),
-  emits: ['chat.message.created'],
+  emits: ['chat.message.created', 'chart.requested', 'symbol.detected'],
 };
 
 export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, traceId, emit }) => {
@@ -30,6 +31,62 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
       sessionId,
       traceId 
     });
+
+    // Check if the message is requesting a chart or contains a symbol
+    const detectedSymbol = extractSymbolFromQuery(req.body.message);
+    const isChartRequest = /\b(chart|graph|show|display|view|price|stock|crypto|ticker)\b/i.test(req.body.message);
+    
+    if (detectedSymbol && isChartRequest) {
+      logger.info('Chart request detected', { symbol: detectedSymbol, traceId });
+      
+      await emit({
+        topic: 'symbol.detected',
+        data: {
+          symbol: detectedSymbol,
+          originalMessage: req.body.message,
+          traceId,
+        },
+      });
+
+      // Generate TradingView chart
+      const chartHtml = await generateTradingViewChart({
+        symbol: detectedSymbol,
+        theme: 'light',
+        height: 500,
+        interval: '1D',
+      });
+
+      await emit({
+        topic: 'chart.requested',
+        data: {
+          symbol: detectedSymbol,
+          timestamp: new Date().toISOString(),
+          traceId,
+        },
+      });
+
+      // Return chart with minimal text response
+      const chartResponse = {
+        traceId,
+        response: `Here's the interactive chart for ${detectedSymbol.toUpperCase()}:`,
+        assistantType: req.body.assistantType,
+        llmProvider: 'groq',
+        model: 'chart-display',
+        chartHtml,
+        symbol: detectedSymbol,
+        hasChart: true,
+      };
+
+      await state.set('chats', `${traceId}:response`, {
+        ...chartResponse,
+        timestamp: new Date().toISOString(),
+      });
+
+      return {
+        status: 200,
+        body: chartResponse,
+      };
+    }
 
     // Store the chat message
     await state.set('chats', traceId, {
@@ -45,6 +102,7 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
 
     let response: string;
     let llmProvider = 'none';
+    let model = 'unknown';
     
     // Priority 1: Try Groq with Llama (fastest, primary provider)
     if (groqService.isConfigured()) {
@@ -66,8 +124,9 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
         } else {
           response = 'Streaming response not supported in this context';
         }
-        llmProvider = 'groq-llama-3.3-70b';
-        logger.info('Groq response received successfully', { llmProvider });
+        llmProvider = 'groq';
+        model = 'llama-3.3-70b-versatile';
+        logger.info('Groq response received successfully', { llmProvider, model });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         logger.warn('Groq failed, falling back to Azure', { error: errorMessage });
@@ -89,8 +148,9 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
         });
         
         response = completion.choices[0]?.message?.content || 'No response generated';
-        llmProvider = 'azure-model-router';
-        logger.info('Azure OpenAI response received', { llmProvider });
+        llmProvider = 'azure';
+        model = 'gpt-4';
+        logger.info('Azure OpenAI response received', { llmProvider, model });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         logger.error('Azure OpenAI failed', { error: errorMessage });
@@ -116,8 +176,9 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
         });
         
         response = completion.choices[0]?.message?.content || 'No response generated';
-        llmProvider = 'openai-gpt4';
-        logger.info('OpenAI response received', { llmProvider });
+        llmProvider = 'openai';
+        model = 'gpt-4-turbo-preview';
+        logger.info('OpenAI response received', { llmProvider, model });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         logger.error('OpenAI API error', { error: errorMessage });
@@ -153,6 +214,7 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
 - Get from: https://platform.openai.com/api-keys
 
 Your message: "${req.body.message}"`;
+      model = 'none';
       llmProvider = 'none';
     }
 
@@ -164,15 +226,47 @@ Your message: "${req.body.message}"`;
       timestamp: new Date().toISOString(),
     });
 
+    // Check if response mentions a symbol and we should add a chart
+    const symbolInResponse = extractSymbolFromQuery(response);
+    let chartHtml = null;
+    
+    if (symbolInResponse && (response.toLowerCase().includes('chart') || response.toLowerCase().includes('price') || response.toLowerCase().includes('stock'))) {
+      try {
+        chartHtml = await generateTradingViewChart({
+          symbol: symbolInResponse,
+          theme: 'light',
+          height: 500,
+          interval: '1D',
+        });
+        
+        await emit({
+          topic: 'chart.requested',
+          data: {
+            symbol: symbolInResponse,
+            source: 'llm-response',
+            timestamp: new Date().toISOString(),
+            traceId,
+          },
+        });
+      } catch (chartError) {
+        logger.warn('Failed to generate chart for detected symbol', { 
+          symbol: symbolInResponse, 
+          error: chartError 
+        });
+      }
+    }
+
     return {
       status: 200,
       body: {
-        response,
         traceId,
+        response,
         assistantType: req.body.assistantType,
         llmProvider,
-        participantAgents: [],
-        debateRounds: [],
+        model,
+        chartHtml: chartHtml || undefined,
+        symbol: symbolInResponse || undefined,
+        hasChart: !!chartHtml,
       },
     };
   } catch (error) {
@@ -204,12 +298,14 @@ Your message: "${req.body.message}"`;
           return {
             status: 200,
             body: {
-              response,
               traceId,
+              response,
               assistantType: req.body.assistantType,
-              llmProvider: 'azure-fallback',
-              participantAgents: [],
-              debateRounds: [],
+              llmProvider: 'azure',
+              model: 'gpt-4',
+              chartHtml: undefined,
+              symbol: undefined,
+              hasChart: false,
             },
           };
         } catch (azureError) {

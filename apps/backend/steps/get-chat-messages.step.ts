@@ -2,21 +2,27 @@ import { z } from 'zod';
 import type { ApiRouteConfig, Handlers } from 'motia';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-);
+// Initialize Supabase client lazily to avoid initialization errors
+let supabase: any = null;
+
+const getSupabase = () => {
+  if (!supabase && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+  }
+  return supabase;
+};
 
 export const config: ApiRouteConfig = {
   type: 'api',
   name: 'GetChatMessages',
   method: 'GET',
-  path: '/api/chat/sessions/:sessionId/messages',
-  pathParamsSchema: z.object({
-    sessionId: z.string().uuid(),
-  }),
+  path: '/api/chat/sessions/messages',
   querySchema: z.object({
-    threadId: z.string().uuid().optional(),
+    sessionId: z.string(),
+    threadId: z.string().optional(),
     limit: z.string().optional().transform(val => val ? parseInt(val) : 50),
     offset: z.string().optional().transform(val => val ? parseInt(val) : 0),
   }),
@@ -25,13 +31,21 @@ export const config: ApiRouteConfig = {
 
 export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
   try {
-    const { sessionId } = req.params;
-    const { threadId, limit, offset } = req.query;
+    const { sessionId, threadId, limit, offset } = req.query;
     
     logger.info('Fetching chat messages', { sessionId, threadId, limit, offset });
 
+    const db = getSupabase();
+    if (!db) {
+      logger.error('Supabase not configured');
+      return {
+        status: 503,
+        body: { error: 'Database service not configured' },
+      };
+    }
+
     // First verify the session exists
-    const { data: session, error: sessionError } = await supabase
+    const { data: session, error: sessionError } = await db
       .from('chat_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -46,7 +60,7 @@ export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
     }
 
     // Build messages query
-    let query = supabase
+    let query = db
       .from('chat_messages')
       .select('*')
       .eq('chat_session_id', sessionId)
@@ -74,7 +88,7 @@ export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
     
     if (threadIds.length > 0) {
       // Get thread starter messages
-      const { data: threadStarters } = await supabase
+      const { data: threadStarters } = await db
         .from('chat_messages')
         .select('thread_id, content, created_at')
         .in('thread_id', threadIds)

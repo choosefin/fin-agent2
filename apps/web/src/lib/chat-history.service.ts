@@ -131,6 +131,7 @@ export class ChatHistoryService {
     } = {}
   ): Promise<ChatMessagesResponse> {
     const params = new URLSearchParams({
+      sessionId,
       limit: (options.limit || 50).toString(),
       offset: (options.offset || 0).toString(),
     });
@@ -140,7 +141,7 @@ export class ChatHistoryService {
     }
 
     const response = await fetch(
-      `${this.baseUrl}/api/chat/sessions/${sessionId}/messages?${params}`
+      `${this.baseUrl}/api/chat/sessions/messages?${params}`
     );
 
     if (!response.ok) {
@@ -164,13 +165,13 @@ export class ChatHistoryService {
     }
   ): Promise<{ message: ChatMessage; threadId?: string }> {
     const response = await fetch(
-      `${this.baseUrl}/api/chat/sessions/${sessionId}/messages`,
+      `${this.baseUrl}/api/chat/messages`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(message),
+        body: JSON.stringify({ ...message, sessionId }),
       }
     );
 

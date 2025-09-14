@@ -2,24 +2,30 @@ import { z } from 'zod';
 import type { ApiRouteConfig, Handlers } from 'motia';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-);
+// Initialize Supabase client lazily to avoid initialization errors
+let supabase: any = null;
+
+const getSupabase = () => {
+  if (!supabase && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+  }
+  return supabase;
+};
 
 export const config: ApiRouteConfig = {
   type: 'api',
   name: 'SaveChatMessage',
   method: 'POST',
-  path: '/api/chat/sessions/:sessionId/messages',
-  pathParamsSchema: z.object({
-    sessionId: z.string().uuid(),
-  }),
+  path: '/api/chat/messages',
   bodySchema: z.object({
+    sessionId: z.string(),
     role: z.enum(['user', 'assistant', 'system']),
     content: z.string(),
-    threadId: z.string().uuid().optional(),
-    parentMessageId: z.string().uuid().optional(),
+    threadId: z.string().optional(),
+    parentMessageId: z.string().optional(),
     metadata: z.object({
       provider: z.string().optional(),
       model: z.string().optional(),
@@ -33,13 +39,21 @@ export const config: ApiRouteConfig = {
 
 export const handler: Handlers['SaveChatMessage'] = async (req, { logger, emit, state }) => {
   try {
-    const { sessionId } = req.params;
-    const { role, content, threadId, parentMessageId, metadata } = req.body;
+    const { sessionId, role, content, threadId, parentMessageId, metadata } = req.body;
     
     logger.info('Saving chat message', { sessionId, role, contentLength: content.length });
 
+    const db = getSupabase();
+    if (!db) {
+      logger.error('Supabase not configured');
+      return {
+        status: 503,
+        body: { error: 'Database service not configured' },
+      };
+    }
+
     // Verify session exists
-    const { data: session, error: sessionError } = await supabase
+    const { data: session, error: sessionError } = await db
       .from('chat_sessions')
       .select('id, user_id')
       .eq('id', sessionId)
@@ -57,7 +71,7 @@ export const handler: Handlers['SaveChatMessage'] = async (req, { logger, emit, 
     let actualThreadId = threadId;
     if (parentMessageId && !threadId) {
       // Check if parent message has a thread ID
-      const { data: parentMessage } = await supabase
+      const { data: parentMessage } = await db
         .from('chat_messages')
         .select('thread_id')
         .eq('id', parentMessageId)
@@ -67,7 +81,7 @@ export const handler: Handlers['SaveChatMessage'] = async (req, { logger, emit, 
     }
 
     // Save the message
-    const { data: message, error: messageError } = await supabase
+    const { data: message, error: messageError } = await db
       .from('chat_messages')
       .insert({
         chat_session_id: sessionId,
@@ -90,7 +104,7 @@ export const handler: Handlers['SaveChatMessage'] = async (req, { logger, emit, 
 
     // Update metadata if provider info is provided
     if (metadata?.provider || metadata?.tokens) {
-      const { data: currentMetadata } = await supabase
+      const { data: currentMetadata } = await db
         .from('chat_metadata')
         .select('*')
         .eq('chat_session_id', sessionId)
@@ -103,7 +117,7 @@ export const handler: Handlers['SaveChatMessage'] = async (req, { logger, emit, 
 
       const totalTokens = (currentMetadata?.total_tokens || 0) + (metadata.tokens || 0);
 
-      await supabase
+      await db
         .from('chat_metadata')
         .update({
           total_tokens: totalTokens,

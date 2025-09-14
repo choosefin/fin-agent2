@@ -2,10 +2,18 @@ import { z } from 'zod';
 import type { ApiRouteConfig, Handlers } from 'motia';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-);
+// Initialize Supabase client lazily to avoid initialization errors
+let supabase: any = null;
+
+const getSupabase = () => {
+  if (!supabase && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+  }
+  return supabase;
+};
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -26,8 +34,17 @@ export const handler: Handlers['CreateChatSession'] = async (req, { logger, emit
     
     logger.info('Creating new chat session', { userId, assistantType });
 
+    const db = getSupabase();
+    if (!db) {
+      logger.error('Supabase not configured');
+      return {
+        status: 503,
+        body: { error: 'Database service not configured' },
+      };
+    }
+
     // Create chat session in database
-    const { data: chatSession, error: sessionError } = await supabase
+    const { data: chatSession, error: sessionError } = await db
       .from('chat_sessions')
       .insert({
         user_id: userId,
@@ -47,7 +64,7 @@ export const handler: Handlers['CreateChatSession'] = async (req, { logger, emit
 
     // If there's an initial message, save it
     if (initialMessage) {
-      const { error: messageError } = await supabase
+      const { error: messageError } = await db
         .from('chat_messages')
         .insert({
           chat_session_id: chatSession.id,

@@ -2,10 +2,18 @@ import { z } from 'zod';
 import type { ApiRouteConfig, Handlers } from 'motia';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-);
+// Initialize Supabase client lazily to avoid initialization errors
+let supabase: any = null;
+
+const getSupabase = () => {
+  if (!supabase && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+  }
+  return supabase;
+};
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -27,8 +35,17 @@ export const handler: Handlers['GetChatHistory'] = async (req, { logger }) => {
     
     logger.info('Fetching chat history', { userId, limit, offset, archived });
 
+    const db = getSupabase();
+    if (!db) {
+      logger.error('Supabase not configured');
+      return {
+        status: 503,
+        body: { error: 'Database service not configured' },
+      };
+    }
+
     // Build query
-    let query = supabase
+    let query = db
       .from('chat_sessions')
       .select(`
         *,
@@ -64,7 +81,7 @@ export const handler: Handlers['GetChatHistory'] = async (req, { logger }) => {
     let lastMessages: any[] = [];
     
     if (sessionIds.length > 0) {
-      const { data: messages } = await supabase
+      const { data: messages } = await db
         .from('chat_messages')
         .select('chat_session_id, content, role, created_at')
         .in('chat_session_id', sessionIds)
