@@ -16,6 +16,10 @@ interface Message {
   timestamp: Date;
   assistantType?: string;
   workflowId?: string;
+  chartHtml?: string;
+  chartIframe?: string;
+  symbol?: string;
+  hasChart?: boolean;
 }
 
 interface AgentStatus {
@@ -225,6 +229,10 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
           content: data.response,
           timestamp: new Date(),
           assistantType: assistant.id,
+          chartHtml: data.chartHtml,
+          chartIframe: data.chartIframe,
+          symbol: data.symbol,
+          hasChart: data.hasChart,
         }]);
         setIsLoading(false);
       }
@@ -342,6 +350,14 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
                 ) : (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 )}
+                
+                {/* Render TradingView chart if present */}
+                {message.hasChart && message.chartIframe && (
+                  <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div dangerouslySetInnerHTML={{ __html: message.chartIframe }} />
+                  </div>
+                )}
+                
                 <p className="text-xs opacity-70 mt-1">
                   {message.timestamp.toLocaleTimeString()}
                 </p>

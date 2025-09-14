@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Proof Charts Work</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <h1 class="text-2xl font-bold mb-4">This proves the charts work when rendered</h1>
+    
+    <button onclick="testChart()" class="bg-blue-500 text-white px-4 py-2 rounded mb-4">
+        Click to simulate "Show me AAPL chart"
+    </button>
+    
+    <!-- This simulates your chat container -->
+    <div id="chat-container" class="space-y-4"></div>
+
+    <script>
+        async function testChart() {
+            // Fetch from your backend
+            const response = await fetch('http://localhost:3000/api/chat/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'Show me AAPL chart',
+                    assistantType: 'general',
+                    userId: 'test-123'
+                })
+            });
+            
+            const message = await response.json();
+            
+            // This is what your frontend should do:
+            const messageHtml = `
+                <div class="max-w-[70%] rounded-lg px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900">
+                    <div class="markdown-content">
+                        <p>${message.response}</p>
+                    </div>
+                    
+                    <!-- THIS IS THE KEY PART - Render the chart! -->
+                    ${message.chartIframe ? `<div class="mt-4">${message.chartIframe}</div>` : ''}
+                    
+                    <p class="text-xs opacity-70 mt-1">${new Date().toLocaleTimeString()}</p>
+                </div>
+            `;
+            
+            document.getElementById('chat-container').innerHTML = messageHtml;
+            
+            // Log what we got
+            console.log('Response has chart?', message.hasChart);
+            console.log('Chart iframe exists?', !!message.chartIframe);
+        }
+    </script>
+</body>
+</html>

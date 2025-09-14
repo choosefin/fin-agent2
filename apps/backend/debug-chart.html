@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chart Debug</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .chart-output { min-height: 550px; background: #f5f5f5; margin: 10px 0; }
+        pre { background: #f0f0f0; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>TradingView Chart Debug Tool</h1>
+    
+    <div class="section">
+        <h2>1. Test Server Response</h2>
+        <button onclick="testServer()">Get AAPL Chart from Server</button>
+        <pre id="server-response"></pre>
+    </div>
+
+    <div class="section">
+        <h2>2. Render Chart HTML</h2>
+        <button onclick="renderChartHtml()">Render chartHtml Field</button>
+        <div id="chart-html-output" class="chart-output"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Render Chart Iframe</h2>
+        <button onclick="renderChartIframe()">Render chartIframe Field</button>
+        <div id="chart-iframe-output" class="chart-output"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Direct TradingView Widget</h2>
+        <button onclick="directWidget()">Create Direct Widget</button>
+        <div id="direct-widget-output" class="chart-output"></div>
+    </div>
+
+    <script>
+        let serverData = null;
+
+        async function testServer() {
+            const response = await fetch('http://localhost:3000/api/chat/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'Show me AAPL chart',
+                    assistantType: 'general',
+                    userId: 'test-123'
+                })
+            });
+            
+            serverData = await response.json();
+            document.getElementById('server-response').textContent = JSON.stringify(serverData, null, 2);
+            
+            console.log('Server response:', serverData);
+            alert(`Response received:\n- Has Chart: ${serverData.hasChart}\n- Chart HTML Length: ${serverData.chartHtml?.length || 0}\n- Has Iframe: ${!!serverData.chartIframe}`);
+        }
+
+        function renderChartHtml() {
+            if (!serverData?.chartHtml) {
+                alert('No chartHtml in server response. Run test server first.');
+                return;
+            }
+            
+            const container = document.getElementById('chart-html-output');
+            container.innerHTML = serverData.chartHtml;
+            
+            // Execute scripts
+            const scripts = container.getElementsByTagName('script');
+            Array.from(scripts).forEach(oldScript => {
+                const newScript = document.createElement('script');
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+            
+            console.log('Chart HTML rendered and scripts executed');
+        }
+
+        function renderChartIframe() {
+            if (!serverData?.chartIframe) {
+                alert('No chartIframe in server response. Run test server first.');
+                return;
+            }
+            
+            const container = document.getElementById('chart-iframe-output');
+            container.innerHTML = serverData.chartIframe;
+            console.log('Chart iframe rendered');
+        }
+
+        function directWidget() {
+            const container = document.getElementById('direct-widget-output');
+            const containerId = 'tv_' + Date.now();
+            
+            container.innerHTML = `<div id="${containerId}" style="height:500px;"></div>`;
+            
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/tv.js';
+            script.onload = () => {
+                new TradingView.widget({
+                    "width": "100%",
+                    "height": 500,
+                    "symbol": "AAPL",
+                    "interval": "D",
+                    "timezone": "Etc/UTC",
+                    "theme": "light",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#f1f3f6",
+                    "enable_publishing": false,
+                    "container_id": containerId
+                });
+                console.log('Direct widget created');
+            };
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>
