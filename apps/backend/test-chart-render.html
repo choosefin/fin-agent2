@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingView Chart Render Test</title>
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; frame-src *;">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            min-height: 600px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TradingView Chart Rendering Test</h1>
+        
+        <div class="status" id="status">
+            Click a button to test chart rendering
+        </div>
+
+        <div>
+            <button onclick="testServerChart('AAPL')">Test AAPL Chart from Server</button>
+            <button onclick="testServerChart('TSLA')">Test TSLA Chart from Server</button>
+            <button onclick="testDirectWidget('BTCUSD')">Test Direct Widget (Bitcoin)</button>
+            <button onclick="clearChart()">Clear Chart</button>
+        </div>
+
+        <div id="chart-container"></div>
+    </div>
+
+    <script>
+        // Test fetching and rendering chart from server
+        async function testServerChart(symbol) {
+            const status = document.getElementById('status');
+            const container = document.getElementById('chart-container');
+            
+            status.textContent = `Fetching ${symbol} chart from server...`;
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/chat/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Show me ${symbol} chart`,
+                        assistantType: 'general',
+                        userId: 'test-user'
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Server response:', data);
+                
+                if (data.hasChart && data.chartHtml) {
+                    status.textContent = `✅ Chart HTML received for ${symbol} (${data.chartHtml.length} chars). Rendering...`;
+                    
+                    // Method 1: Direct innerHTML (won't execute scripts)
+                    container.innerHTML = data.chartHtml;
+                    
+                    // Method 2: Execute scripts manually
+                    executeScripts(container);
+                    
+                    status.textContent += ' Scripts executed!';
+                } else {
+                    status.textContent = `❌ No chart in response for ${symbol}`;
+                    container.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                status.textContent = `❌ Error: ${error.message}`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Execute scripts in container
+        function executeScripts(container) {
+            const scripts = container.getElementsByTagName('script');
+            const scriptsArray = Array.from(scripts);
+            
+            scriptsArray.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                
+                // Copy attributes
+                Array.from(oldScript.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                
+                // Copy content or src
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                
+                // Replace script to trigger execution
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+        }
+
+        // Test direct TradingView widget
+        function testDirectWidget(symbol) {
+            const status = document.getElementById('status');
+            const container = document.getElementById('chart-container');
+            
+            status.textContent = `Creating direct TradingView widget for ${symbol}...`;
+            
+            // Create unique container ID
+            const containerId = `tradingview_${Date.now()}`;
+            
+            // Set container HTML
+            container.innerHTML = `
+                <div style="height: 500px; width: 100%;">
+                    <div id="${containerId}" style="height: 100%; width: 100%;"></div>
+                </div>
+            `;
+            
+            // Load TradingView library and create widget
+            const script1 = document.createElement('script');
+            script1.src = 'https://s3.tradingview.com/tv.js';
+            script1.onload = () => {
+                try {
+                    new TradingView.widget({
+                        "width": "100%",
+                        "height": 500,
+                        "symbol": symbol,
+                        "interval": "D",
+                        "timezone": "Etc/UTC",
+                        "theme": "light",
+                        "style": "1",
+                        "locale": "en",
+                        "toolbar_bg": "#f1f3f6",
+                        "enable_publishing": false,
+                        "allow_symbol_change": true,
+                        "container_id": containerId,
+                        "studies": ["RSI@tv-basicstudies"]
+                    });
+                    status.textContent = `✅ Direct widget created for ${symbol}`;
+                } catch (error) {
+                    status.textContent = `❌ Widget creation failed: ${error.message}`;
+                    console.error('Widget error:', error);
+                }
+            };
+            script1.onerror = () => {
+                status.textContent = '❌ Failed to load TradingView library';
+            };
+            document.body.appendChild(script1);
+        }
+
+        // Clear chart
+        function clearChart() {
+            document.getElementById('chart-container').innerHTML = '';
+            document.getElementById('status').textContent = 'Chart cleared';
+        }
+
+        // Test on page load
+        window.addEventListener('load', () => {
+            console.log('Page loaded. Ready to test charts.');
+            console.log('TradingView available:', typeof TradingView !== 'undefined');
+        });
+    </script>
+</body>
+</html>

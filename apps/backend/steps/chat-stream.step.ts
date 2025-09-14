@@ -193,6 +193,9 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
         },
       })
 
+      // Generate iframe version as alternative
+      const chartIframe = `<iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_${Date.now()}&symbol=${detectedSymbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=light&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en" style="width: 100%; height: 500px; border: 0;" allowtransparency="true" frameborder="0"></iframe>`;
+      
       // Return chart response immediately without LLM call
       return {
         status: 200,
@@ -203,6 +206,14 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
           llmProvider: 'groq',
           model: 'chart-display',
           chartHtml,
+          chartIframe,
+          chartConfig: {
+            symbol: detectedSymbol,
+            containerId: `tradingview_${detectedSymbol.toLowerCase()}_${Date.now()}`,
+            height: 500,
+            width: '100%',
+            interval: '1D',
+          },
           symbol: detectedSymbol,
           hasChart: true,
         },
