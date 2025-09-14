@@ -3,7 +3,123 @@ import { z } from 'zod'
 import { LLMService } from '../services/llm-service'
 import { WorkflowDetector } from '../services/workflow-detector'
 import { agentPrompts } from '../src/mastra/config'
-import { generateTradingViewChart, extractSymbolFromQuery, isChartRequest } from '../services/chart.service'
+
+// Inline chart functions to avoid import issues
+function extractSymbolFromQuery(query: string): string | null {
+  const upperQuery = query.toUpperCase();
+  
+  const commonSymbols: Record<string, string> = {
+    'APPLE': 'AAPL',
+    'MICROSOFT': 'MSFT',
+    'GOOGLE': 'GOOGL',
+    'ALPHABET': 'GOOGL',
+    'AMAZON': 'AMZN',
+    'TESLA': 'TSLA',
+    'META': 'META',
+    'FACEBOOK': 'META',
+    'NVIDIA': 'NVDA',
+    'BERKSHIRE': 'BRK.B',
+    'BITCOIN': 'BTCUSD',
+    'ETHEREUM': 'ETHUSD',
+    'S&P': 'SPX',
+    'NASDAQ': 'NDX',
+    'DOW': 'DJI',
+  };
+
+  for (const [name, symbol] of Object.entries(commonSymbols)) {
+    if (upperQuery.includes(name)) {
+      return symbol;
+    }
+  }
+
+  const tickerMatch = query.match(/\b([A-Z]{1,5}(?:\.[A-Z]{1,2})?)\b/);
+  if (tickerMatch) {
+    return tickerMatch[1];
+  }
+
+  const cryptoMatch = query.match(/\b(BTC|ETH|SOL|ADA|DOT|AVAX|MATIC|LINK|UNI|AAVE|XRP|BNB|DOGE|SHIB)(?:USD)?\b/i);
+  if (cryptoMatch) {
+    const crypto = cryptoMatch[1].toUpperCase();
+    return crypto.includes('USD') ? crypto : `${crypto}USD`;
+  }
+
+  return null;
+}
+
+function isChartRequest(message: string): boolean {
+  const chartKeywords = [
+    'chart', 'graph', 'show', 'display', 'view', 
+    'price', 'stock', 'crypto', 'ticker', 'trading',
+    'candle', 'technical', 'analysis', 'market'
+  ];
+  
+  const lowerMessage = message.toLowerCase();
+  return chartKeywords.some(keyword => lowerMessage.includes(keyword));
+}
+
+function generateTradingViewChart(config: { symbol: string; theme?: string; height?: number; interval?: string }): string {
+  const { symbol, theme = 'light', height = 500, interval = '1D' } = config;
+  const containerId = `tradingview_${symbol.toLowerCase()}_${Date.now()}`;
+
+  const widgetConfig = {
+    autosize: false,
+    width: '100%',
+    height,
+    symbol: symbol.toUpperCase(),
+    interval,
+    timezone: 'Etc/UTC',
+    theme,
+    style: '1',
+    locale: 'en',
+    toolbar_bg: theme === 'dark' ? '#1a1a1a' : '#f1f3f6',
+    enable_publishing: false,
+    allow_symbol_change: true,
+    container_id: containerId,
+    studies: ['RSI@tv-basicstudies'],
+    show_popup_button: true,
+    popup_width: '1000',
+    popup_height: '650',
+    hide_side_toolbar: false,
+  };
+
+  return `
+    <div class="tradingview-chart-wrapper" style="width:100%;margin:20px 0;">
+      <div class="chart-header" style="padding:12px 16px;background:${theme === 'dark' ? '#1a1a1a' : '#f7f9fc'};border:1px solid ${theme === 'dark' ? '#333' : '#e1e4e8'};border-bottom:none;border-radius:8px 8px 0 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h3 style="margin:0;color:${theme === 'dark' ? '#fff' : '#24292e'};font-size:16px;font-weight:600;">
+              ${symbol.toUpperCase()} Chart
+            </h3>
+            <p style="margin:4px 0 0;color:${theme === 'dark' ? '#8b949e' : '#586069'};font-size:13px;">
+              Interactive chart • ${interval} timeframe • Real-time data
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <span style="padding:4px 10px;background:${theme === 'dark' ? '#21262d' : '#f6f8fa'};color:${theme === 'dark' ? '#58a6ff' : '#0969da'};border-radius:6px;font-size:12px;font-weight:500;">
+              ${interval}
+            </span>
+            <span style="padding:4px 10px;background:${theme === 'dark' ? '#1f6feb20' : '#ddf4ff'};color:${theme === 'dark' ? '#58a6ff' : '#0969da'};border-radius:6px;font-size:12px;font-weight:500;">
+              Live
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="tradingview-widget-container" style="height:${height}px;width:100%;border:1px solid ${theme === 'dark' ? '#333' : '#e1e4e8'};border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:${theme === 'dark' ? '#0d1117' : '#ffffff'};">
+        <div id="${containerId}" style="height:100%;width:100%;"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        <script type="text/javascript">
+          (function() {
+            try {
+              new TradingView.widget(${JSON.stringify(widgetConfig)});
+            } catch (e) {
+              console.error('TradingView widget initialization failed:', e);
+            }
+          })();
+        </script>
+      </div>
+    </div>
+  `;
+}
 
 export const config: ApiRouteConfig = {
   type: 'api',
@@ -33,9 +149,20 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
   const { message, assistantType = 'general', userId, context } = req.body
   
   try {
+    // Log the incoming message
+    logger.info('ChatStream received message', { message, traceId })
+    
     // Check if the message is requesting a chart
     const detectedSymbol = extractSymbolFromQuery(message)
     const chartRequest = isChartRequest(message)
+    
+    logger.info('Chart detection results', { 
+      message,
+      detectedSymbol,
+      chartRequest,
+      willShowChart: !!(detectedSymbol && chartRequest),
+      traceId 
+    })
     
     if (detectedSymbol && chartRequest) {
       logger.info('Chart request detected in stream', { symbol: detectedSymbol, traceId })
