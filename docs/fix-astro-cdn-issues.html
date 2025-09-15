@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix for Astro CDN Issues</title>
+    
+    <!-- Correct way to load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Three.js BEFORE using it -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Alternative: Use ESM modules -->
+    <script type="module">
+        // For ES modules
+        import * as THREE from 'https://unpkg.com/three@0.150.0/build/three.module.js';
+        window.THREE = THREE; // Make it available globally if needed
+    </script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto p-8">
+        <h1 class="text-3xl font-bold mb-4">CDN Loading Issues - Solutions</h1>
+        
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-3">Issue 1: THREE is not defined</h2>
+            <p class="mb-2">Solution: Load Three.js library before using it</p>
+            <pre class="bg-gray-900 p-3 rounded text-sm overflow-x-auto"><code>&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+    // Now you can use THREE
+    function initThreeJS() {
+        const scene = new THREE.Scene();
+        // ... rest of your code
+    }
+&lt;/script&gt;</code></pre>
+        </div>
+        
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-3">Issue 2: Tailwind CSS CORS Error</h2>
+            <p class="mb-2">The correct CDN URL for Tailwind is:</p>
+            <pre class="bg-gray-900 p-3 rounded text-sm"><code>&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;</code></pre>
+            <p class="mt-2">Note: Don't add a trailing slash to the URL</p>
+        </div>
+        
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-3">Issue 3: For Astro Projects</h2>
+            <p class="mb-2">In your Astro layout or page:</p>
+            <pre class="bg-gray-900 p-3 rounded text-sm overflow-x-auto"><code>---
+// index.astro or Layout.astro
+---
+&lt;html&gt;
+&lt;head&gt;
+    &lt;!-- Load Three.js first --&gt;
+    &lt;script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"&gt;&lt;/script&gt;
+    
+    &lt;!-- Load Tailwind (for development only) --&gt;
+    &lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;!-- Your content --&gt;
+    
+    &lt;script&gt;
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+        });
+        
+        function initThreeJS() {
+            // THREE is now available
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer();
+            // ... rest of your Three.js code
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        </div>
+        
+        <div class="bg-yellow-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-3">⚠️ Production Recommendation</h2>
+            <p>For production Astro sites, install Tailwind CSS properly via npm:</p>
+            <pre class="bg-gray-900 p-3 rounded text-sm mt-2"><code>npm install -D tailwindcss @astrojs/tailwind
+npx astro add tailwind</code></pre>
+            <p class="mt-2">And for Three.js:</p>
+            <pre class="bg-gray-900 p-3 rounded text-sm mt-2"><code>npm install three
+// Then import in your component
+import * as THREE from 'three';</code></pre>
+        </div>
+    </div>
+    
+    <script>
+        // Test that both libraries are loaded
+        console.log('THREE.js loaded:', typeof THREE !== 'undefined');
+        console.log('Tailwind loaded: Check if styles are applied');
+    </script>
+</body>
+</html>

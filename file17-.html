@@ -1,0 +1,405 @@
+```html
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TapPay - Send Money. Earn Interest. Zero Fees.</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0A0A1A; /* A deep, modern navy */
+            color: #E0E0E0;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #38BDF8, #A78BFA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+        }
+
+        .hero-gradient-bg {
+             background: radial-gradient(ellipse at 50% 20%, rgba(56, 189, 248, 0.1), transparent 70%);
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #38BDF8, #818CF8);
+            transition: all 0.3s ease;
+            box-shadow: 0px 4px 15px rgba(129, 140, 248, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0px 8px 25px rgba(129, 140, 248, 0.4);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        
+        #hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.5;
+        }
+        
+        /* Scroll Animation Classes */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 w-full z-50 transition-all duration-300" id="header">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <a href="#" class="text-2xl font-bold text-white">TapPay</a>
+                <nav class="hidden md:flex space-x-8 items-center">
+                    <a href="#features" class="text-gray-300 hover:text-white transition">Features</a>
+                    <a href="#how-it-works" class="text-gray-300 hover:text-white transition">How It Works</a>
+                    <a href="#security" class="text-gray-300 hover:text-white transition">Security</a>
+                </nav>
+                <a href="#cta" class="hidden md:block bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-5 rounded-full transition">
+                    Join Waitlist
+                </a>
+                <button id="mobile-menu-button" class="md:hidden text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-900/80 backdrop-blur-lg">
+            <a href="#features" class="block text-center py-3 px-6 text-gray-300 hover:text-white transition">Features</a>
+            <a href="#how-it-works" class="block text-center py-3 px-6 text-gray-300 hover:text-white transition">How It Works</a>
+            <a href="#security" class="block text-center py-3 px-6 text-gray-300 hover:text-white transition">Security</a>
+            <div class="p-4">
+                <a href="#cta" class="block w-full text-center bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-5 rounded-full transition">
+                    Join Waitlist
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative min-h-screen flex items-center justify-center pt-24 pb-16 hero-gradient-bg overflow-hidden">
+            <canvas id="hero-canvas"></canvas>
+            <div class="container mx-auto px-6 text-center z-10">
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-4 reveal">
+                    Send Money. <br class="md:hidden">Earn Interest. 
+                    <span class="gradient-text">Zero Fees.</span>
+                </h1>
+                <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8 reveal" style="transition-delay: 200ms;">
+                    Welcome to the future of global payments. TapPay lets you send funds worldwide instantly using just an email or phone number—all while your balance earns competitive interest.
+                </p>
+                <form class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto reveal" style="transition-delay: 400ms;" onsubmit="event.preventDefault(); alert('Thank you for joining the waitlist!');">
+                    <input type="email" placeholder="Enter your email address" required class="flex-grow w-full px-5 py-3 rounded-full bg-gray-800/50 border border-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition text-white placeholder-gray-500">
+                    <button type="submit" class="btn-primary text-white font-bold py-3 px-8 rounded-full whitespace-nowrap">
+                        Join Waitlist
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="py-20 lg:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white reveal">A Radically Simple Way to Pay</h2>
+                    <p class="text-lg text-gray-400 mt-4 max-w-2xl mx-auto reveal" style="transition-delay: 200ms;">Three steps to financial freedom. No hoops, no hurdles.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
+                    <!-- Step 1 -->
+                    <div class="glass-card p-8 text-center reveal">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-sky-500/10 text-sky-400 mx-auto mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">1. Link & Load</h3>
+                        <p class="text-gray-400">Securely connect your crypto exchange, bank account, or card in seconds. Your funds, your control.</p>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="glass-card p-8 text-center reveal" style="transition-delay: 200ms;">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-500/10 text-indigo-400 mx-auto mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">2. Tap & Send</h3>
+                        <p class="text-gray-400">Send money to anyone, anywhere, using only their email or phone number. Global payments are now as easy as sending a text.</p>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="glass-card p-8 text-center reveal" style="transition-delay: 400ms;">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">3. Receive & Grow</h3>
+                        <p class="text-gray-400">Recipients get stablecoins (USDC) instantly in their TapPay account and automatically start earning competitive interest.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 lg:py-32 bg-gray-900/50">
+            <div class="container mx-auto px-6">
+                <!-- Feature 1: Zero Fees -->
+                <div class="flex flex-col md:flex-row items-center gap-12 lg:gap-24 mb-24">
+                    <div class="md:w-1/2 reveal">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-4">Leave the <span class="gradient-text">Fees Behind</span>.</h2>
+                        <p class="text-lg text-gray-400 mb-6">Traditional money transfers cost you 3-7% in hidden fees and poor exchange rates. With TapPay, what you send is what they get. Every single time. It’s that simple, and it's always free.</p>
+                        <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>No transfer fees. Ever.</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>No account maintenance fees.</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Competitive, transparent exchange rates.</li>
+                        </ul>
+                    </div>
+                    <div class="md:w-1/2 reveal" style="transition-delay: 200ms;">
+                        <div class="glass-card p-8">
+                            <h4 class="font-semibold text-white mb-4">Cost Comparison</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-sm text-gray-400">Typical Bank Transfer ($1000)</p>
+                                    <div class="w-full bg-gray-700 rounded-full h-4 mt-1">
+                                        <div class="bg-red-500 h-4 rounded-full" style="width: 7%"></div>
+                                    </div>
+                                    <p class="text-right text-sm text-red-400 mt-1">$70 in fees</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400">TapPay Transfer ($1000)</p>
+                                    <div class="w-full bg-gray-700 rounded-full h-4 mt-1">
+                                        <div class="bg-gradient-to-r from-sky-400 to-indigo-400 h-4 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                    <p class="text-right text-sm text-sky-300 mt-1">$0 in fees. Recipient gets $1000.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Earn Interest -->
+                <div class="flex flex-col md:flex-row-reverse items-center gap-12 lg:gap-24">
+                    <div class="md:w-1/2 reveal">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-4">Put Your <span class="gradient-text">Money to Work</span>.</h2>
+                        <p class="text-lg text-gray-400 mb-6">Don't let your money sit idle. Every dollar in your TapPay account is a dollar earning for you. Powered by the stability of USDC, a fully-backed stablecoin, your balance automatically grows, day and night.</p>
+                         <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Competitive APY on all balances.</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Interest paid out in real-time.</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>No lock-up periods, withdraw anytime.</li>
+                        </ul>
+                    </div>
+                    <div class="md:w-1/2 reveal" style="transition-delay: 200ms;">
+                        <div class="glass-card p-8 flex flex-col items-center justify-center text-center">
+                            <p class="text-gray-400">Current Estimated APY</p>
+                            <p class="gradient-text text-7xl font-bold my-2">4.5%</p>
+                            <p class="text-gray-300">on your USDC balance</p>
+                            <p class="text-xs text-gray-500 mt-4">*Rate is variable and subject to change.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Security Section -->
+        <section id="security" class="py-20 lg:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-4 reveal">Your Trust, Our <span class="gradient-text">Foundation</span>.</h2>
+                    <p class="text-lg text-gray-400 reveal" style="transition-delay: 200ms;">We combine cutting-edge Web3 technology with bank-grade security protocols to ensure your funds are always safe and under your control.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+                    <div class="flex items-start space-x-4 reveal">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-500/10 text-indigo-400">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Bank-Grade Encryption</h3>
+                            <p class="text-gray-400 mt-1">All personal data is protected with AES-256 encryption, both in transit and at rest.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4 reveal" style="transition-delay: 200ms;">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-500/10 text-indigo-400">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-1.026.977-2.19.977-3.432 0-3.422-2.723-6.208-6.082-6.208-1.554 0-2.97.568-4.118 1.504A21.881 21.881 0 0112 2.484c2.19 0 4.213.621 5.988 1.696" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Self-Custody Option</h3>
+                            <p class="text-gray-400 mt-1">Connect your own Web3 wallet for full control. You own your keys, you own your crypto.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4 reveal" style="transition-delay: 400ms;">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-500/10 text-indigo-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9V3m0 18a9 9 0 009-9m-9 9a9 9 0 00-9-9" /></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Decentralized & Audited</h3>
+                            <p class="text-gray-400 mt-1">Our core logic is built on audited smart contracts, ensuring transparency and security for every transaction.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Final CTA Section -->
+        <section id="cta" class="py-20 lg:py-32">
+            <div class="container mx-auto px-6 text-center">
+                 <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4 reveal">
+                    Ready for a <span class="gradient-text">Smarter Way to Pay</span>?
+                </h2>
+                <p class="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 reveal" style="transition-delay: 200ms;">
+                    Join the waitlist and be the first to experience the future of finance. Instant, free, and interest-bearing.
+                </p>
+                <form class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto reveal" style="transition-delay: 400ms;" onsubmit="event.preventDefault(); alert('Thank you for joining the waitlist!');">
+                    <input type="email" placeholder="Enter your email address" required class="flex-grow w-full px-5 py-3 rounded-full bg-gray-800/50 border border-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition text-white placeholder-gray-500">
+                    <button type="submit" class="btn-primary text-white font-bold py-3 px-8 rounded-full whitespace-nowrap">
+                        Get Early Access
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900/50 border-t border-gray-800">
+        <div class="container mx-auto px-6 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+                <p class="text-gray-400">&copy; 2024 TapPay Inc. All rights reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white transition">Twitter</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Discord</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Terms</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Header scroll effect
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('bg-gray-900/80', 'backdrop-blur-lg', 'shadow-lg');
+            } else {
+                header.classList.remove('bg-gray-900/80', 'backdrop-blur-lg', 'shadow-lg');
+            }
+        });
+
+        // Scroll Reveal Animation
+        const revealElements = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        revealElements.forEach(el => {
+            observer.observe(el);
+        });
+
+        // Three.js Hero Background
+        let scene, camera, renderer, particles;
+        const canvas = document.getElementById('hero-canvas');
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const particleCount = 5000;
+            const particlesGeometry = new THREE.BufferGeometry();
+            const posArray = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 10;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.01,
+                color: 0x818CF8, // Indigo-400
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            });
+
+            particles = new THREE.Points(particlesGeometry, particleMaterial);
+            scene.add(particles);
+
+            camera.position.z = 5;
+        }
+
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            particles.rotation.x += 0.0001;
+            particles.rotation.y += 0.0002;
+            
+            // Parallax effect
+            if (particles) {
+               particles.rotation.y += mouseX * 0.0002;
+               particles.rotation.x += -mouseY * 0.0002;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize, false);
+        
+        initThreeJS();
+        animate();
+    </script>
+
+</body>
+</html>
+```

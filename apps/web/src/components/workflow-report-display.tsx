@@ -1,0 +1,323 @@
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  AlertTriangle, 
+  Shield, 
+  BarChart3,
+  LineChart,
+  PieChart,
+  Target,
+  DollarSign,
+  Globe,
+  Activity
+} from 'lucide-react';
+
+interface WorkflowReportDisplayProps {
+  results: Array<{
+    agent: string;
+    task: string;
+    result: string;
+    completedAt?: string;
+  }>;
+  workflowName?: string;
+}
+
+const agentIcons: Record<string, React.ReactNode> = {
+  analyst: <BarChart3 className="h-5 w-5" />,
+  trader: <LineChart className="h-5 w-5" />,
+  advisor: <Target className="h-5 w-5" />,
+  riskManager: <Shield className="h-5 w-5" />,
+  economist: <Globe className="h-5 w-5" />,
+  general: <Activity className="h-5 w-5" />,
+};
+
+const agentColors: Record<string, string> = {
+  analyst: 'bg-blue-500',
+  trader: 'bg-green-500',
+  advisor: 'bg-purple-500',
+  riskManager: 'bg-red-500',
+  economist: 'bg-yellow-500',
+  general: 'bg-gray-500',
+};
+
+export function WorkflowReportDisplay({ results, workflowName }: WorkflowReportDisplayProps) {
+  // Parse markdown-like formatting in the results
+  const parseFormattedContent = (content: string) => {
+    const lines = content.split('\n');
+    const elements: React.ReactNode[] = [];
+    let currentList: string[] = [];
+    let inCodeBlock = false;
+
+    lines.forEach((line, index) => {
+      // Headers
+      if (line.startsWith('# ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+          currentList = [];
+        }
+        elements.push(<h1 key={index} className="text-2xl font-bold mb-4 mt-6">{line.slice(2)}</h1>);
+      } else if (line.startsWith('## ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+          currentList = [];
+        }
+        elements.push(<h2 key={index} className="text-xl font-semibold mb-3 mt-4">{line.slice(3)}</h2>);
+      } else if (line.startsWith('### ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+          currentList = [];
+        }
+        elements.push(<h3 key={index} className="text-lg font-medium mb-2 mt-3">{line.slice(4)}</h3>);
+      } else if (line.startsWith('#### ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+          currentList = [];
+        }
+        elements.push(<h4 key={index} className="text-base font-medium mb-2">{line.slice(5)}</h4>);
+      }
+      // Lists
+      else if (line.startsWith('• ') || line.startsWith('- ') || line.match(/^\d+\.\s/)) {
+        const listItem = line.replace(/^[•\-]\s/, '').replace(/^\d+\.\s/, '');
+        currentList.push(formatListItem(listItem));
+      }
+      // Blockquotes
+      else if (line.startsWith('> ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+          currentList = [];
+        }
+        elements.push(
+          <blockquote key={index} className="border-l-4 border-gray-300 pl-4 italic my-4">
+            {line.slice(2)}
+          </blockquote>
+        );
+      }
+      // Code blocks
+      else if (line.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+      } else if (inCodeBlock) {
+        elements.push(
+          <pre key={index} className="bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto">
+            <code>{line}</code>
+          </pre>
+        );
+      }
+      // Horizontal rules
+      else if (line === '---' || line === '***') {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+          currentList = [];
+        }
+        elements.push(<hr key={index} className="my-6 border-gray-300" />);
+      }
+      // Regular text
+      else if (line.trim()) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+          currentList = [];
+        }
+        elements.push(<p key={index} className="mb-2">{formatText(line)}</p>);
+      }
+    });
+
+    // Add any remaining list items
+    if (currentList.length > 0) {
+      elements.push(<ul key="final-list" className="list-disc list-inside space-y-1 mb-4">{currentList.map((item, i) => <li key={i}>{item}</li>)}</ul>);
+    }
+
+    return elements;
+  };
+
+  // Format text with bold, italic, and inline code
+  const formatText = (text: string): React.ReactNode => {
+    // Replace **text** with bold
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Replace *text* with italic
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Replace `code` with inline code
+    text = text.replace(/`(.+?)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm">$1</code>');
+    
+    return <span dangerouslySetInnerHTML={{ __html: text }} />;
+  };
+
+  // Format list items with special handling for metrics
+  const formatListItem = (text: string): React.ReactNode => {
+    // Check for warning/error indicators
+    if (text.startsWith('⚠️') || text.startsWith('🔴')) {
+      return (
+        <span className="text-red-600 dark:text-red-400 font-medium">
+          {formatText(text)}
+        </span>
+      );
+    }
+    if (text.startsWith('🟡')) {
+      return (
+        <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+          {formatText(text)}
+        </span>
+      );
+    }
+    if (text.startsWith('🟢') || text.startsWith('✓')) {
+      return (
+        <span className="text-green-600 dark:text-green-400 font-medium">
+          {formatText(text)}
+        </span>
+      );
+    }
+    
+    // Check for percentage values (positive/negative)
+    const percentMatch = text.match(/([+-]?\d+\.?\d*%)/);
+    if (percentMatch) {
+      const percent = percentMatch[1];
+      const isPositive = !percent.startsWith('-');
+      return (
+        <span>
+          {formatText(text.replace(percent, ''))}
+          <span className={isPositive ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium'}>
+            {percent}
+          </span>
+        </span>
+      );
+    }
+    
+    return formatText(text);
+  };
+
+  // Check if this is a risk assessment workflow
+  const isRiskAssessment = workflowName?.toLowerCase().includes('risk') || 
+                          results.some(r => r.agent === 'riskManager');
+
+  return (
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <Shield className="h-6 w-6" />
+            {workflowName || 'Multi-Agent Analysis Report'}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Generated: {new Date().toLocaleString()}
+          </p>
+        </CardHeader>
+      </Card>
+
+      {/* Risk Summary Alert (for risk assessments) */}
+      {isRiskAssessment && (
+        <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Risk Assessment Summary</AlertTitle>
+          <AlertDescription>
+            Your portfolio shows moderate risk levels with potential for optimization. 
+            Review the detailed analysis below for specific recommendations.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Agent Reports Tabs */}
+      <Tabs defaultValue="0" className="w-full">
+        <TabsList className="grid grid-cols-auto gap-2 w-full">
+          {results.map((result, index) => (
+            <TabsTrigger 
+              key={index} 
+              value={index.toString()}
+              className="flex items-center gap-2"
+            >
+              {agentIcons[result.agent] || agentIcons.general}
+              {result.agent.charAt(0).toUpperCase() + result.agent.slice(1)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {results.map((result, index) => (
+          <TabsContent key={index} value={index.toString()} className="mt-6">
+            <Card className="border-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${agentColors[result.agent]} text-white`}>
+                      {agentIcons[result.agent] || agentIcons.general}
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">
+                        {result.agent.charAt(0).toUpperCase() + result.agent.slice(1)} Analysis
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">{result.task}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="ml-auto">
+                    {result.completedAt ? new Date(result.completedAt).toLocaleTimeString() : 'Processing...'}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  {parseFormattedContent(result.result)}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      {/* Combined Recommendations Section */}
+      {results.length > 1 && (
+        <Card className="border-2 border-blue-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Consolidated Recommendations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {results.map((result, index) => {
+                const recommendations = extractRecommendations(result.result);
+                if (recommendations.length === 0) return null;
+                
+                return (
+                  <div key={index} className="space-y-2">
+                    <h4 className="font-medium flex items-center gap-2">
+                      {agentIcons[result.agent]}
+                      {result.agent.charAt(0).toUpperCase() + result.agent.slice(1)}
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {recommendations.slice(0, 3).map((rec, i) => (
+                        <li key={i}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Helper function to extract recommendations from formatted text
+function extractRecommendations(text: string): string[] {
+  const recommendations: string[] = [];
+  const lines = text.split('\n');
+  let inRecommendationSection = false;
+  
+  lines.forEach(line => {
+    if (line.toLowerCase().includes('recommendation') || 
+        line.toLowerCase().includes('action item')) {
+      inRecommendationSection = true;
+    } else if (line.startsWith('#')) {
+      inRecommendationSection = false;
+    } else if (inRecommendationSection && (line.startsWith('•') || line.startsWith('-') || line.match(/^\d+\./))) {
+      recommendations.push(line.replace(/^[•\-]\s/, '').replace(/^\d+\.\s/, ''));
+    }
+  });
+  
+  return recommendations;
+}

@@ -2,6 +2,45 @@
 
 You are helping develop a **Motia project** - a unified backend framework that uses event-driven architecture with multiple programming languages.
 
+## ⚠️ IMPORTANT: Setup Instructions for New Clones
+
+When cloning this repository on a new machine, you MUST run the following steps:
+
+```bash
+# 1. Install dependencies from root
+pnpm install
+
+# 2. CRITICAL: Run Motia postinstall in backend
+cd apps/backend
+pnpm run postinstall
+# OR manually run:
+../../node_modules/.pnpm/node_modules/.bin/motia install
+
+# 3. Create .env file
+cp .env.example .env
+# Then add your environment variables
+```
+
+### Why This Is Necessary
+
+- **pnpm workspace limitation**: Running `pnpm install` from root does NOT automatically execute postinstall scripts in workspace packages
+- **Motia requires initialization**: The `motia install` command creates the `.motia` directory needed for the workbench UI
+- **Without this step**: You'll see errors like "Cannot read properties of undefined (reading 'recentlyCreatedOwnerStacks')" on localhost:3000
+
+### Alternative Solutions
+
+1. **Add to root package.json** (one-time fix):
+```json
+"scripts": {
+  "postinstall": "pnpm --filter backend run postinstall"
+}
+```
+
+2. **Use recursive install** (slower):
+```bash
+pnpm install --recursive
+```
+
 ## Core Motia Concepts
 
 ### Steps Architecture
