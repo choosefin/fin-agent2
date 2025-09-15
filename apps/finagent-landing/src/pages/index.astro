@@ -1,498 +1,433 @@
 ---
-import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="FinAgent - AI-Powered Financial Intelligence Platform">
-  <main>
-    <!-- Navigation -->
-    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center">
-            <div class="flex items-center gap-2">
-              <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-              </svg>
-              <span class="text-xl font-bold text-gray-900">FinAgent</span>
-            </div>
-          </div>
-          <div class="hidden md:flex items-center space-x-8">
-            <a href="#features" class="text-gray-700 hover:text-blue-600 transition">Features</a>
-            <a href="#assistants" class="text-gray-700 hover:text-blue-600 transition">AI Assistants</a>
-            <a href="#integrations" class="text-gray-700 hover:text-blue-600 transition">Integrations</a>
-            <a href="#pricing" class="text-gray-700 hover:text-blue-600 transition">Pricing</a>
-            <button class="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition">Sign In</button>
-            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Get Started</button>
-          </div>
-        </div>
-      </div>
-    </nav>
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinAgent - AI-Powered Financial Intelligence Platform</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <!-- Hero Section -->
-    <section class="pt-24 pb-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-white">
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center">
-          <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            AI-Powered Financial Intelligence
-            <span class="block text-blue-600 mt-2">For Smarter Investing</span>
-          </h1>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Harness the power of 6 specialized AI assistants to analyze markets, manage portfolios, 
-            and make data-driven investment decisions with confidence.
-          </p>
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <button class="px-8 py-4 bg-blue-600 text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition transform hover:scale-105">
-              Start Free Trial
-            </button>
-            <button class="px-8 py-4 bg-white text-blue-600 border-2 border-blue-600 rounded-lg text-lg font-semibold hover:bg-blue-50 transition">
-              Watch Demo
-            </button>
-          </div>
-        </div>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0A0A1A; /* A deep, modern navy */
+            color: #E0E0E0;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #38BDF8, #A78BFA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+        }
+
+        .hero-gradient-bg {
+             background: radial-gradient(ellipse at 50% 20%, rgba(56, 189, 248, 0.1), transparent 70%);
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #38BDF8, #818CF8);
+            transition: all 0.3s ease;
+            box-shadow: 0px 4px 15px rgba(129, 140, 248, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0px 8px 25px rgba(129, 140, 248, 0.4);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
         
-        <!-- Hero Image/Illustration -->
-        <div class="mt-12 relative">
-          <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-1">
-            <div class="bg-white rounded-xl p-8">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-blue-600">$2.4M+</div>
-                  <div class="text-gray-600 mt-2">Assets Analyzed Daily</div>
+        #hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.5;
+        }
+        
+        /* Scroll Animation Classes */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 w-full z-50 transition-all duration-300" id="header">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <a href="#" class="text-2xl font-bold text-white">FinAgent</a>
+                <nav class="hidden md:flex space-x-8 items-center">
+                    <a href="#features" class="text-gray-300 hover:text-white transition">Features</a>
+                    <a href="#how-it-works" class="text-gray-300 hover:text-white transition">How It Works</a>
+                    <a href="#security" class="text-gray-300 hover:text-white transition">AI Assistants</a>
+                </nav>
+                <a href="#cta" class="hidden md:block bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-5 rounded-full transition">
+                    Get Started
+                </a>
+                <button id="mobile-menu-button" class="md:hidden text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-900/80 backdrop-blur-lg">
+            <a href="#features" class="block text-center py-3 px-6 text-gray-300 hover:text-white transition">Features</a>
+            <a href="#how-it-works" class="block text-center py-3 px-6 text-gray-300 hover:text-white transition">How It Works</a>
+            <a href="#security" class="block text-center py-3 px-6 text-gray-300 hover:text-white transition">AI Assistants</a>
+            <div class="p-4">
+                <a href="#cta" class="block w-full text-center bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-5 rounded-full transition">
+                    Get Started
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative min-h-screen flex items-center justify-center pt-24 pb-16 hero-gradient-bg overflow-hidden">
+            <canvas id="hero-canvas"></canvas>
+            <div class="container mx-auto px-6 text-center z-10">
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-4 reveal">
+                    AI-Powered. <br class="md:hidden">Market Intelligence. 
+                    <span class="gradient-text">Zero Guesswork.</span>
+                </h1>
+                <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8 reveal" style="transition-delay: 200ms;">
+                    Welcome to the future of investing. FinAgent harnesses 6 specialized AI assistants powered by GPT-4 to analyze markets, manage portfolios, and deliver institutional-grade insights—all in real-time.
+                </p>
+                <form class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto reveal" style="transition-delay: 400ms;" onsubmit="event.preventDefault(); alert('Thank you for your interest! We will contact you soon.');">
+                    <input type="email" placeholder="Enter your email address" required class="flex-grow w-full px-5 py-3 rounded-full bg-gray-800/50 border border-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition text-white placeholder-gray-500">
+                    <button type="submit" class="btn-primary text-white font-bold py-3 px-8 rounded-full whitespace-nowrap">
+                        Start Free Trial
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="py-20 lg:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white reveal">A Radically Simple Way to Invest</h2>
+                    <p class="text-lg text-gray-400 mt-4 max-w-2xl mx-auto reveal" style="transition-delay: 200ms;">Three steps to financial intelligence. No complexity, just clarity.</p>
                 </div>
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-blue-600">98.7%</div>
-                  <div class="text-gray-600 mt-2">Prediction Accuracy</div>
+                <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
+                    <!-- Step 1 -->
+                    <div class="glass-card p-8 text-center reveal">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-sky-500/10 text-sky-400 mx-auto mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">1. Connect & Sync</h3>
+                        <p class="text-gray-400">Securely link your brokerage accounts with Plaid. Your portfolio data syncs automatically in real-time.</p>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="glass-card p-8 text-center reveal" style="transition-delay: 200ms;">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-500/10 text-indigo-400 mx-auto mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">2. AI Analysis</h3>
+                        <p class="text-gray-400">Our 6 AI assistants analyze market data, news, and trends to generate personalized investment insights.</p>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="glass-card p-8 text-center reveal" style="transition-delay: 400ms;">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">3. Execute & Grow</h3>
+                        <p class="text-gray-400">Get actionable recommendations, execute trades through Alpaca, and watch your portfolio grow with AI guidance.</p>
+                    </div>
                 </div>
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-blue-600">10,000+</div>
-                  <div class="text-gray-600 mt-2">Active Investors</div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 lg:py-32 bg-gray-900/50">
+            <div class="container mx-auto px-6">
+                <!-- Feature 1: Multi-Agent AI -->
+                <div class="flex flex-col md:flex-row items-center gap-12 lg:gap-24 mb-24">
+                    <div class="md:w-1/2 reveal">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-4">Your Personal <span class="gradient-text">AI Investment Team</span>.</h2>
+                        <p class="text-lg text-gray-400 mb-6">Traditional advisors charge 1-2% annually and work office hours. FinAgent's 6 specialized AI assistants work 24/7, analyzing millions of data points to maximize your returns—all powered by GPT-4.</p>
+                        <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>General Assistant for portfolio overview</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Market Analyst for technical insights</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Risk Manager for portfolio protection</li>
+                        </ul>
+                    </div>
+                    <div class="md:w-1/2 reveal" style="transition-delay: 200ms;">
+                        <div class="glass-card p-8">
+                            <h4 class="font-semibold text-white mb-4">AI Assistant Performance</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-sm text-gray-400">Traditional Human Advisor Response Time</p>
+                                    <div class="w-full bg-gray-700 rounded-full h-4 mt-1">
+                                        <div class="bg-red-500 h-4 rounded-full" style="width: 20%"></div>
+                                    </div>
+                                    <p class="text-right text-sm text-red-400 mt-1">24-48 hours</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400">FinAgent AI Response Time</p>
+                                    <div class="w-full bg-gray-700 rounded-full h-4 mt-1">
+                                        <div class="bg-gradient-to-r from-sky-400 to-indigo-400 h-4 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                    <p class="text-right text-sm text-sky-300 mt-1">< 3 seconds. Real-time insights.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Features Section -->
-    <section id="features" class="py-20 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Everything You Need for Intelligent Investing
-          </h2>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Comprehensive tools and AI-powered insights to maximize your investment potential
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <!-- Feature 1 -->
-          <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-              </svg>
+                <!-- Feature 2: Real-Time Market Data -->
+                <div class="flex flex-col md:flex-row-reverse items-center gap-12 lg:gap-24">
+                    <div class="md:w-1/2 reveal">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-4">Institutional-Grade <span class="gradient-text">Market Intelligence</span>.</h2>
+                        <p class="text-lg text-gray-400 mb-6">Don't trade on yesterday's news. FinAgent integrates with Yahoo Finance, Polygon.io, and Alpaca to deliver real-time market data, technical indicators, and breaking news analysis—the same tools used by hedge funds.</p>
+                         <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Real-time price feeds & charts</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Advanced technical indicators</li>
+                            <li class="flex items-center"><svg class="h-5 w-5 text-sky-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Breaking news sentiment analysis</li>
+                        </ul>
+                    </div>
+                    <div class="md:w-1/2 reveal" style="transition-delay: 200ms;">
+                        <div class="glass-card p-8 flex flex-col items-center justify-center text-center">
+                            <p class="text-gray-400">Market Data Analyzed Daily</p>
+                            <p class="gradient-text text-7xl font-bold my-2">2.4M+</p>
+                            <p class="text-gray-300">data points processed</p>
+                            <p class="text-xs text-gray-500 mt-4">*Powered by enterprise APIs</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Real-Time Market Analysis</h3>
-            <p class="text-gray-600">Access live market data from Yahoo Finance, Polygon.io, and Alpaca Trading APIs for instant insights.</p>
-          </div>
+        </section>
 
-          <!-- Feature 2 -->
-          <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-              </svg>
+        <!-- AI Assistants Section (replacing Security) -->
+        <section id="security" class="py-20 lg:py-32">
+            <div class="container mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-4 reveal">Meet Your <span class="gradient-text">AI Financial Team</span>.</h2>
+                    <p class="text-lg text-gray-400 reveal" style="transition-delay: 200ms;">Six specialized AI assistants, each an expert in their domain, working together to maximize your investment potential.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+                    <div class="flex items-start space-x-4 reveal">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-blue-500/10 text-blue-400">
+                           <span class="font-bold">GA</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">General Assistant</h3>
+                            <p class="text-gray-400 mt-1">Your financial companion for portfolio overviews, basic queries, and investment education.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4 reveal" style="transition-delay: 100ms;">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-purple-500/10 text-purple-400">
+                           <span class="font-bold">MA</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Market Analyst</h3>
+                            <p class="text-gray-400 mt-1">Deep technical analysis, trend identification, and market insights using real-time data.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4 reveal" style="transition-delay: 200ms;">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-green-500/10 text-green-400">
+                            <span class="font-bold">TS</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Trading Specialist</h3>
+                            <p class="text-gray-400 mt-1">Optimizes entry/exit points and provides real-time trading recommendations.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4 reveal" style="transition-delay: 300ms;">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-yellow-500/10 text-yellow-400">
+                            <span class="font-bold">IA</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Investment Advisor</h3>
+                            <p class="text-gray-400 mt-1">Creates personalized strategies based on your goals and risk tolerance.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4 reveal" style="transition-delay: 400ms;">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-red-500/10 text-red-400">
+                            <span class="font-bold">RM</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Risk Manager</h3>
+                            <p class="text-gray-400 mt-1">Monitors exposure and suggests hedging strategies to protect your portfolio.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4 reveal" style="transition-delay: 500ms;">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-500/10 text-indigo-400">
+                            <span class="font-bold">ME</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Macro Economist</h3>
+                            <p class="text-gray-400 mt-1">Analyzes global events and economic indicators to predict market movements.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Multi-Agent AI System</h3>
-            <p class="text-gray-600">6 specialized AI assistants powered by GPT-4 work together to provide comprehensive financial analysis.</p>
-          </div>
-
-          <!-- Feature 3 -->
-          <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-              </svg>
+        </section>
+        
+        <!-- Final CTA Section -->
+        <section id="cta" class="py-20 lg:py-32">
+            <div class="container mx-auto px-6 text-center">
+                 <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4 reveal">
+                    Ready for <span class="gradient-text">Smarter Investing</span>?
+                </h2>
+                <p class="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 reveal" style="transition-delay: 200ms;">
+                    Join thousands of investors using AI to make better financial decisions. Start your free trial today.
+                </p>
+                <form class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto reveal" style="transition-delay: 400ms;" onsubmit="event.preventDefault(); alert('Thank you for signing up! Check your email for next steps.');">
+                    <input type="email" placeholder="Enter your email address" required class="flex-grow w-full px-5 py-3 rounded-full bg-gray-800/50 border border-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition text-white placeholder-gray-500">
+                    <button type="submit" class="btn-primary text-white font-bold py-3 px-8 rounded-full whitespace-nowrap">
+                        Start Free Trial
+                    </button>
+                </form>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Bank-Level Security</h3>
-            <p class="text-gray-600">Plaid integration for secure account aggregation with enterprise-grade encryption and authentication.</p>
-          </div>
-
-          <!-- Feature 4 -->
-          <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Lightning-Fast Performance</h3>
-            <p class="text-gray-600">Redis caching and optimized infrastructure deliver real-time responses and seamless user experience.</p>
-          </div>
-
-          <!-- Feature 5 -->
-          <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Risk Management</h3>
-            <p class="text-gray-600">Dedicated AI Risk Manager analyzes portfolio exposure and provides actionable risk mitigation strategies.</p>
-          </div>
-
-          <!-- Feature 6 -->
-          <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-            <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Collaborative Workflows</h3>
-            <p class="text-gray-600">Event-driven architecture enables seamless collaboration between AI agents for comprehensive analysis.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- AI Assistants Section -->
-    <section id="assistants" class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Meet Your AI Financial Team
-          </h2>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Six specialized AI assistants working together to provide comprehensive financial intelligence
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- General Assistant -->
-          <div class="bg-white rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex items-center mb-4">
-              <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                GA
-              </div>
-              <div class="ml-4">
-                <h3 class="text-lg font-semibold">General Assistant</h3>
-                <p class="text-sm text-gray-500">Your AI Financial Companion</p>
-              </div>
-            </div>
-            <p class="text-gray-600">Answers general financial questions, provides market overviews, and helps with basic portfolio queries.</p>
-          </div>
-
-          <!-- Market Analyst -->
-          <div class="bg-white rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex items-center mb-4">
-              <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                MA
-              </div>
-              <div class="ml-4">
-                <h3 class="text-lg font-semibold">Market Analyst</h3>
-                <p class="text-sm text-gray-500">Deep Market Intelligence</p>
-              </div>
-            </div>
-            <p class="text-gray-600">Performs technical analysis, identifies trends, and provides detailed market insights using real-time data.</p>
-          </div>
-
-          <!-- Trading Specialist -->
-          <div class="bg-white rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex items-center mb-4">
-              <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">
-                TS
-              </div>
-              <div class="ml-4">
-                <h3 class="text-lg font-semibold">Trading Specialist</h3>
-                <p class="text-sm text-gray-500">Expert Trade Execution</p>
-              </div>
-            </div>
-            <p class="text-gray-600">Optimizes entry and exit points, manages orders, and provides real-time trading recommendations.</p>
-          </div>
-
-          <!-- Investment Advisor -->
-          <div class="bg-white rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex items-center mb-4">
-              <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold">
-                IA
-              </div>
-              <div class="ml-4">
-                <h3 class="text-lg font-semibold">Investment Advisor</h3>
-                <p class="text-sm text-gray-500">Portfolio Strategy Expert</p>
-              </div>
-            </div>
-            <p class="text-gray-600">Creates personalized investment strategies based on your goals, risk tolerance, and market conditions.</p>
-          </div>
-
-          <!-- Risk Manager -->
-          <div class="bg-white rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex items-center mb-4">
-              <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white font-bold">
-                RM
-              </div>
-              <div class="ml-4">
-                <h3 class="text-lg font-semibold">Risk Manager</h3>
-                <p class="text-sm text-gray-500">Portfolio Protection</p>
-              </div>
-            </div>
-            <p class="text-gray-600">Monitors portfolio exposure, identifies potential risks, and suggests hedging strategies to protect investments.</p>
-          </div>
-
-          <!-- Macro Economist -->
-          <div class="bg-white rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex items-center mb-4">
-              <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
-                ME
-              </div>
-              <div class="ml-4">
-                <h3 class="text-lg font-semibold">Macro Economist</h3>
-                <p class="text-sm text-gray-500">Global Market Analysis</p>
-              </div>
-            </div>
-            <p class="text-gray-600">Analyzes economic indicators, policy changes, and global events to predict market movements.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Integrations Section -->
-    <section id="integrations" class="py-20 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Powerful Integrations
-          </h2>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Connect with leading financial platforms and data providers
-          </p>
-        </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div class="flex flex-col items-center">
-            <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-              <span class="text-2xl font-bold text-gray-700">Plaid</span>
-            </div>
-            <span class="text-sm text-gray-600">Account Aggregation</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-              <span class="text-2xl font-bold text-gray-700">Yahoo</span>
-            </div>
-            <span class="text-sm text-gray-600">Market Data</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-              <span class="text-2xl font-bold text-gray-700">Alpaca</span>
-            </div>
-            <span class="text-sm text-gray-600">Trading API</span>
-          </div>
-          <div class="flex flex-col items-center">
-            <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-              <span class="text-2xl font-bold text-gray-700">GPT-4</span>
-            </div>
-            <span class="text-sm text-gray-600">AI Intelligence</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Pricing Section -->
-    <section id="pricing" class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Simple, Transparent Pricing
-          </h2>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Choose the plan that fits your investment needs
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <!-- Starter Plan -->
-          <div class="bg-white rounded-xl shadow-lg p-8">
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Starter</h3>
-            <p class="text-gray-600 mb-4">Perfect for beginners</p>
-            <div class="mb-6">
-              <span class="text-4xl font-bold">$29</span>
-              <span class="text-gray-600">/month</span>
-            </div>
-            <ul class="space-y-3 mb-8">
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>2 AI Assistants</span>
-              </li>
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>Basic Market Data</span>
-              </li>
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>1 Account Connection</span>
-              </li>
-            </ul>
-            <button class="w-full py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition">
-              Start Free Trial
-            </button>
-          </div>
-
-          <!-- Professional Plan -->
-          <div class="bg-blue-600 text-white rounded-xl shadow-xl p-8 transform scale-105">
-            <div class="bg-blue-500 text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full inline-block mb-4">
-              Most Popular
-            </div>
-            <h3 class="text-xl font-semibold mb-2">Professional</h3>
-            <p class="text-blue-100 mb-4">For serious investors</p>
-            <div class="mb-6">
-              <span class="text-4xl font-bold">$99</span>
-              <span class="text-blue-100">/month</span>
-            </div>
-            <ul class="space-y-3 mb-8">
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>All 6 AI Assistants</span>
-              </li>
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>Real-time Market Data</span>
-              </li>
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>Unlimited Accounts</span>
-              </li>
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>Priority Support</span>
-              </li>
-            </ul>
-            <button class="w-full py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition font-semibold">
-              Start Free Trial
-            </button>
-          </div>
-
-          <!-- Enterprise Plan -->
-          <div class="bg-white rounded-xl shadow-lg p-8">
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Enterprise</h3>
-            <p class="text-gray-600 mb-4">For teams & institutions</p>
-            <div class="mb-6">
-              <span class="text-4xl font-bold">Custom</span>
-            </div>
-            <ul class="space-y-3 mb-8">
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>Custom AI Training</span>
-              </li>
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>API Access</span>
-              </li>
-              <li class="flex items-center">
-                <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                <span>Dedicated Support</span>
-              </li>
-            </ul>
-            <button class="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
-              Contact Sales
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
-      <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">
-          Ready to Transform Your Investment Strategy?
-        </h2>
-        <p class="text-xl text-blue-100 mb-8">
-          Join thousands of investors using AI to make smarter financial decisions
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <button class="px-8 py-4 bg-white text-blue-600 rounded-lg text-lg font-semibold hover:bg-gray-100 transition transform hover:scale-105">
-            Start Your Free Trial
-          </button>
-          <button class="px-8 py-4 bg-transparent text-white border-2 border-white rounded-lg text-lg font-semibold hover:bg-white/10 transition">
-            Schedule a Demo
-          </button>
-        </div>
-        <p class="text-sm text-blue-100 mt-6">
-          No credit card required • 14-day free trial • Cancel anytime
-        </p>
-      </div>
-    </section>
+        </section>
+    </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <div class="flex items-center gap-2 mb-4">
-              <svg class="h-8 w-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-              </svg>
-              <span class="text-xl font-bold text-white">FinAgent</span>
+    <footer class="bg-gray-900/50 border-t border-gray-800">
+        <div class="container mx-auto px-6 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+                <p class="text-gray-400">&copy; 2024 FinAgent by Terragon Labs. All rights reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white transition">Twitter</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Discord</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Terms</a>
+                </div>
             </div>
-            <p class="text-sm">AI-Powered Financial Intelligence Platform for smarter investing decisions.</p>
-          </div>
-          <div>
-            <h4 class="font-semibold text-white mb-4">Product</h4>
-            <ul class="space-y-2 text-sm">
-              <li><a href="#" class="hover:text-blue-400 transition">Features</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">AI Assistants</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">Integrations</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">Pricing</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="font-semibold text-white mb-4">Company</h4>
-            <ul class="space-y-2 text-sm">
-              <li><a href="#" class="hover:text-blue-400 transition">About</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">Blog</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">Careers</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">Contact</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="font-semibold text-white mb-4">Resources</h4>
-            <ul class="space-y-2 text-sm">
-              <li><a href="#" class="hover:text-blue-400 transition">Documentation</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">API Reference</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">Support</a></li>
-              <li><a href="#" class="hover:text-blue-400 transition">Status</a></li>
-            </ul>
-          </div>
         </div>
-        <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p class="text-sm text-gray-400">© 2024 FinAgent by Terragon Labs. All rights reserved.</p>
-          <div class="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" class="text-sm hover:text-blue-400 transition">Privacy Policy</a>
-            <a href="#" class="text-sm hover:text-blue-400 transition">Terms of Service</a>
-            <a href="#" class="text-sm hover:text-blue-400 transition">Cookie Policy</a>
-          </div>
-        </div>
-      </div>
     </footer>
-  </main>
-</Layout>
+
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Header scroll effect
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('bg-gray-900/80', 'backdrop-blur-lg', 'shadow-lg');
+            } else {
+                header.classList.remove('bg-gray-900/80', 'backdrop-blur-lg', 'shadow-lg');
+            }
+        });
+
+        // Scroll Reveal Animation
+        const revealElements = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        revealElements.forEach(el => {
+            observer.observe(el);
+        });
+
+        // Three.js Hero Background
+        let scene, camera, renderer, particles;
+        const canvas = document.getElementById('hero-canvas');
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const particleCount = 5000;
+            const particlesGeometry = new THREE.BufferGeometry();
+            const posArray = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 10;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.01,
+                color: 0x818CF8, // Indigo-400
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            });
+
+            particles = new THREE.Points(particlesGeometry, particleMaterial);
+            scene.add(particles);
+
+            camera.position.z = 5;
+        }
+
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            particles.rotation.x += 0.0001;
+            particles.rotation.y += 0.0002;
+            
+            // Parallax effect
+            if (particles) {
+               particles.rotation.y += mouseX * 0.0002;
+               particles.rotation.x += -mouseY * 0.0002;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize, false);
+        
+        initThreeJS();
+        animate();
+    </script>
+
+</body>
+</html>
