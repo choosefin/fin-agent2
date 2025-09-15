@@ -24,3 +24,80 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Markdown Report Content Styles */
+.markdown-report-content h1 {
+  @apply text-3xl font-bold mb-6 mt-8 pb-3 border-b-2 border-gray-200 dark:border-gray-700;
+}
+
+.markdown-report-content h2 {
+  @apply text-2xl font-semibold mb-4 mt-6;
+}
+
+.markdown-report-content h3 {
+  @apply text-xl font-medium mb-3 mt-4 pl-4 border-l-4 border-blue-500;
+}
+
+.markdown-report-content h4 {
+  @apply text-lg font-medium mb-2 mt-3;
+}
+
+.markdown-report-content p {
+  @apply mb-4 text-base leading-relaxed;
+}
+
+.markdown-report-content ul {
+  @apply list-disc list-inside space-y-2 mb-4 ml-4;
+}
+
+.markdown-report-content ol {
+  @apply list-decimal list-inside space-y-2 mb-4 ml-4;
+}
+
+.markdown-report-content li {
+  @apply text-gray-700 dark:text-gray-300;
+}
+
+.markdown-report-content table {
+  @apply w-full mb-6 border-collapse;
+}
+
+.markdown-report-content thead {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.markdown-report-content th {
+  @apply px-4 py-3 text-left font-semibold border-b-2 border-gray-300 dark:border-gray-600;
+}
+
+.markdown-report-content td {
+  @apply px-4 py-3 border-b border-gray-200 dark:border-gray-700;
+}
+
+.markdown-report-content blockquote {
+  @apply border-l-4 border-blue-500 pl-4 py-2 my-4 bg-blue-50 dark:bg-blue-950/30 italic;
+}
+
+.markdown-report-content code {
+  @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono;
+}
+
+.markdown-report-content pre {
+  @apply bg-gray-900 dark:bg-gray-950 p-4 rounded-lg overflow-x-auto mb-4;
+}
+
+.markdown-report-content pre code {
+  @apply bg-transparent p-0;
+}
+
+.markdown-report-content hr {
+  @apply my-8 border-gray-300 dark:border-gray-700;
+}
+
+.markdown-report-content strong {
+  @apply font-bold text-gray-900 dark:text-gray-100;
+}
+
+.markdown-report-content em {
+  @apply italic;
+}
