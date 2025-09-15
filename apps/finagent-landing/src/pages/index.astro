@@ -1,4 +1,5 @@
 ---
+import '../styles/global.css';
 ---
 
 <!DOCTYPE html>
@@ -8,16 +9,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FinAgent - AI-Powered Financial Intelligence Platform</title>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
     <!-- Google Fonts: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         body {
@@ -331,7 +326,9 @@
         </div>
     </footer>
 
-    <script>
+    <script type="module">
+        import * as THREE from 'three';
+        
         // Mobile Menu Toggle
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
