@@ -1,0 +1,32 @@
+
+> web@0.1.0 typecheck
+> tsc --noEmit
+
+src/app/api/plaid/accounts/route.ts(2,34): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.
+src/app/api/plaid/accounts/route.ts(3,29): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+src/app/api/plaid/disconnect/route.ts(2,34): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.
+src/app/api/plaid/disconnect/route.ts(3,29): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+src/app/api/plaid/holdings/route.ts(2,34): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.
+src/app/api/plaid/holdings/route.ts(3,29): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+src/app/api/plaid/refresh-account/route.ts(2,34): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.
+src/app/api/plaid/refresh-account/route.ts(3,29): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+src/app/api/plaid/sync-accounts/route.ts(2,34): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.
+src/app/api/plaid/sync-accounts/route.ts(3,29): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+src/app/api/plaid/transactions/route.ts(2,34): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.
+src/app/api/plaid/transactions/route.ts(3,29): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+src/components/account-manager/AccountManager.tsx(10,26): error TS2307: Cannot find module '@/components/ui/use-toast' or its corresponding type declarations.
+src/components/account-manager/AddAccountButton.tsx(7,26): error TS2307: Cannot find module '@/components/ui/use-toast' or its corresponding type declarations.
+src/components/enhanced-chat-interface-financial.tsx(7,26): error TS2307: Cannot find module './ui/use-toast' or its corresponding type declarations.
+src/components/financial/AIInsights.tsx(7,26): error TS2307: Cannot find module '@/components/ui/textarea' or its corresponding type declarations.
+src/components/financial/AIInsights.tsx(20,26): error TS2307: Cannot find module '@/components/ui/use-toast' or its corresponding type declarations.
+src/components/financial/AIInsights.tsx(202,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/financial/FinancialDashboard.tsx(4,58): error TS2307: Cannot find module '@/components/ui/tabs' or its corresponding type declarations.
+src/components/financial/InvestmentsList.tsx(14,26): error TS2307: Cannot find module '@/components/ui/use-toast' or its corresponding type declarations.
+src/components/financial/PortfolioSummary.tsx(24,8): error TS2307: Cannot find module 'recharts' or its corresponding type declarations.
+src/components/financial/PortfolioSummary.tsx(200,29): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/components/financial/TransactionsList.tsx(8,79): error TS2307: Cannot find module '@/components/ui/select' or its corresponding type declarations.
+src/components/financial/TransactionsList.tsx(15,26): error TS2307: Cannot find module '@/components/ui/use-toast' or its corresponding type declarations.
+src/lib/utils/formatting.ts(81,9): error TS2322: Type '{ month: string; day: string; year: string; } | { month: string; day: string; year: string; } | { month: string; day: string; year: string; } | { weekday: string; month: string; day: string; year: string; }' is not assignable to type 'DateTimeFormatOptions'.
+  Type '{ month: string; day: string; year: string; }' is not assignable to type 'DateTimeFormatOptions'.
+    Types of property 'year' are incompatible.
+      Type 'string' is not assignable to type '"numeric" | "2-digit" | undefined'.
