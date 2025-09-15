@@ -129,7 +129,7 @@ export function ChatInterface({ assistant, onSendMessage }: ChatInterfaceProps) 
     });
   };
 
-  const defaultMessageHandler = async (message: string): Promise<string> => {
+  const defaultMessageHandler = async (message: string): Promise<string | { content: string; chartHtml?: string; chartIframe?: string; symbol?: string; hasChart?: boolean }> => {
     try {
       // Use Next.js API route as proxy to avoid CORS issues
       console.log('Sending chat request via Next.js proxy');
