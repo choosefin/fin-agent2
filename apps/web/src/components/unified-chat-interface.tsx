@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { AssistantProfile } from './assistant-selector';
 import { AgentStatusPanel } from './agent-status-panel';
+import { WorkflowReportDisplay } from './workflow-report-display';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -16,6 +17,12 @@ interface Message {
   timestamp: Date;
   assistantType?: string;
   workflowId?: string;
+  workflowResults?: Array<{
+    agent: string;
+    task: string;
+    result: string;
+    completedAt?: string;
+  }>;
 }
 
 interface AgentStatus {
@@ -145,19 +152,22 @@ export function UnifiedChatInterface({ assistant }: UnifiedChatInterfaceProps) {
           break;
 
         case 'workflow.completed':
-          // Add compiled results message
+          // Add compiled results message with structured data
           if (data.workflowId === activeWorkflow?.workflowId) {
             const results = data.results || [];
-            const compiledMessage = results.map((r: { agent: string; result: string }) => 
-              `**${r.agent.toUpperCase()} Analysis:**\n\n${r.result}`
-            ).join('\n\n---\n\n');
-
+            
             setMessages(prev => [...prev, {
               id: `workflow-result-${Date.now()}`,
               role: 'assistant',
-              content: compiledMessage || 'Analysis complete.',
+              content: 'Multi-agent analysis complete. View the detailed report below.',
               timestamp: new Date(),
               workflowId: data.workflowId,
+              workflowResults: results.map((r: any) => ({
+                agent: r.agent,
+                task: r.task || `Analysis by ${r.agent}`,
+                result: r.result,
+                completedAt: r.completedAt,
+              })),
             }]);
 
             // Clear workflow after a delay
@@ -353,29 +363,39 @@ export function UnifiedChatInterface({ assistant }: UnifiedChatInterfaceProps) {
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
               )}
-              <div
-                className={cn(
-                  'max-w-[70%] rounded-lg px-4 py-2',
-                  message.role === 'user'
-                    ? 'bg-blue-500 text-white'
-                    : message.role === 'system'
-                    ? 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-gray-900 dark:text-gray-100'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                )}
-              >
-                {message.role === 'assistant' && message.content ? (
-                  <div className="markdown-content">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {message.content}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                )}
-                <p className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
-                </p>
-              </div>
+              {/* Check if this is a workflow result with structured data */}
+              {message.workflowResults && message.workflowResults.length > 0 ? (
+                <div className="w-full max-w-none">
+                  <WorkflowReportDisplay 
+                    results={message.workflowResults}
+                    workflowName={activeWorkflow?.name}
+                  />
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    'max-w-[70%] rounded-lg px-4 py-2',
+                    message.role === 'user'
+                      ? 'bg-blue-500 text-white'
+                      : message.role === 'system'
+                      ? 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-gray-900 dark:text-gray-100'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                  )}
+                >
+                  {message.role === 'assistant' && message.content ? (
+                    <div className="markdown-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
+                  <p className="text-xs opacity-70 mt-1">
+                    {message.timestamp.toLocaleTimeString()}
+                  </p>
+                </div>
+              )}
               {message.role === 'user' && (
                 <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center">
                   <User className="h-5 w-5 text-white" />

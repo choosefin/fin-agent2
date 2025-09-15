@@ -15,16 +15,20 @@ export const config: ApiRouteConfig = {
     message: z.string(),
     assistantType: z.enum(['general', 'analyst', 'trader', 'advisor', 'riskManager', 'economist']),
     userId: z.string(),
+    sessionId: z.string().uuid().optional(), // Add optional session ID
     symbols: z.array(z.string()).optional(),
   }),
-  emits: ['chart.requested', 'symbol.detected'],
+  emits: ['chat.message.created', 'chart.requested', 'symbol.detected'],
 };
 
 export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, traceId, emit }) => {
   try {
+    const { sessionId } = req.body;
+    
     logger.info('Processing chat request', { 
       assistantType: req.body.assistantType,
       message: req.body.message.substring(0, 50) + '...',
+      sessionId,
       traceId 
     });
 
@@ -89,6 +93,7 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
       message: req.body.message,
       assistantType: req.body.assistantType,
       userId: req.body.userId,
+      sessionId,
       timestamp: new Date().toISOString(),
     });
 
