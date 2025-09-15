@@ -5,6 +5,7 @@ import { azureOpenAI } from '../services/azure-openai.service';
 import { agentPrompts } from '../src/mastra/config';
 import { OpenAI } from 'openai';
 import { RiskReportFormatter } from '../services/risk-report-formatter';
+import { SummaryGeneratorService } from '../services/summary-generator.service';
 
 const inputSchema = z.object({
   workflowId: z.string(),
@@ -250,19 +251,51 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
     // Check if this was the last agent or trigger the next one
     const totalSteps = workflow.steps?.length || workflow.agents?.length || 1;
     if (stepIndex >= totalSteps - 1) {
-      // This was the last agent - workflow complete
-      logger.info('Workflow completed', {
+      // This was the last agent - generate executive summary
+      logger.info('All agents completed, generating executive summary', {
         workflowId,
         resultsCount: updatedResults.length,
-        message: 'Multi-agent analysis complete',
       });
+
+      // Generate executive summary from all agent results
+      const executiveSummary = await SummaryGeneratorService.generateExecutiveSummary(
+        updatedResults,
+        workflow.message
+      );
+
+      // Add summary as a final result
+      const summaryResult = {
+        agent: 'summary',
+        task: 'Executive Summary and Synthesis',
+        result: executiveSummary,
+        completedAt: new Date().toISOString(),
+      };
+
+      const finalResults = [...updatedResults, summaryResult];
+
+      // Store the summary
+      await state.set('workflows', `${workflowId}:summary`, summaryResult);
+      await state.set('workflows', workflowId, {
+        ...workflow,
+        results: finalResults,
+        summary: executiveSummary,
+        completedAt: new Date().toISOString(),
+      });
+
+      logger.info('Workflow completed with executive summary', {
+        workflowId,
+        resultsCount: finalResults.length,
+        message: 'Multi-agent analysis complete with executive summary',
+      });
+
       await emit({
         topic: 'workflow.completed' as any,
         data: {
           type: 'workflow.completed',
           workflowId,
           userId: workflow.userId,
-          results: updatedResults,
+          results: finalResults,
+          summary: executiveSummary,
           completedAt: new Date().toISOString(),
         },
       } as any);

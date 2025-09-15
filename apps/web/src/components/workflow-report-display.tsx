@@ -14,8 +14,12 @@ import {
   Target,
   DollarSign,
   Globe,
-  Activity
+  Activity,
+  Sparkles
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import '../styles/markdown-report.css';
 
 interface WorkflowReportDisplayProps {
   results: Array<{
@@ -34,6 +38,7 @@ const agentIcons: Record<string, React.ReactNode> = {
   riskManager: <Shield className="h-5 w-5" />,
   economist: <Globe className="h-5 w-5" />,
   general: <Activity className="h-5 w-5" />,
+  summary: <Sparkles className="h-5 w-5" />,
 };
 
 const agentColors: Record<string, string> = {
@@ -43,6 +48,7 @@ const agentColors: Record<string, string> = {
   riskManager: 'bg-red-500',
   economist: 'bg-yellow-500',
   general: 'bg-gray-500',
+  summary: 'bg-gradient-to-r from-purple-500 to-pink-500',
 };
 
 export function WorkflowReportDisplay({ results, workflowName }: WorkflowReportDisplayProps) {
@@ -219,24 +225,29 @@ export function WorkflowReportDisplay({ results, workflowName }: WorkflowReportD
         </Alert>
       )}
 
-      {/* Agent Reports Tabs */}
-      <Tabs defaultValue="0" className="w-full">
+      {/* Agent Reports Tabs - Show summary first if available */}
+      <Tabs defaultValue={results.find(r => r.agent === 'summary') ? 'summary' : '0'} className="w-full">
         <TabsList className="grid grid-cols-auto gap-2 w-full">
-          {results.map((result, index) => (
-            <TabsTrigger 
-              key={index} 
-              value={index.toString()}
-              className="flex items-center gap-2"
-            >
-              {agentIcons[result.agent] || agentIcons.general}
-              {result.agent.charAt(0).toUpperCase() + result.agent.slice(1)}
-            </TabsTrigger>
-          ))}
+          {results.map((result, index) => {
+            const tabValue = result.agent === 'summary' ? 'summary' : index.toString();
+            return (
+              <TabsTrigger 
+                key={index} 
+                value={tabValue}
+                className="flex items-center gap-2"
+              >
+                {agentIcons[result.agent] || agentIcons.general}
+                {result.agent.charAt(0).toUpperCase() + result.agent.slice(1)}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
-        {results.map((result, index) => (
-          <TabsContent key={index} value={index.toString()} className="mt-6">
-            <Card className="border-2">
+        {results.map((result, index) => {
+          const tabValue = result.agent === 'summary' ? 'summary' : index.toString();
+          return (
+            <TabsContent key={index} value={tabValue} className="mt-6">
+            <Card className={result.agent === 'summary' ? 'border-2 border-purple-500 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20' : 'border-2'}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -245,24 +256,27 @@ export function WorkflowReportDisplay({ results, workflowName }: WorkflowReportD
                     </div>
                     <div>
                       <CardTitle className="text-xl">
-                        {result.agent.charAt(0).toUpperCase() + result.agent.slice(1)} Analysis
+                        {result.agent === 'summary' ? '🎯 Executive Summary' : `${result.agent.charAt(0).toUpperCase() + result.agent.slice(1)} Analysis`}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">{result.task}</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="ml-auto">
+                  <Badge variant={result.agent === 'summary' ? 'default' : 'outline'} className="ml-auto">
                     {result.completedAt ? new Date(result.completedAt).toLocaleTimeString() : 'Processing...'}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  {parseFormattedContent(result.result)}
+                <div className="markdown-report-content">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {result.result}
+                  </ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-        ))}
+          );
+        })}
       </Tabs>
 
       {/* Combined Recommendations Section */}
