@@ -70,8 +70,16 @@ import '../styles/global.css';
         }
 
         .reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+        
+        /* Fallback - ensure content is visible after load */
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                opacity: 1 !important;
+                transform: none !important;
+            }
         }
     </style>
 </head>
@@ -327,7 +335,18 @@ import '../styles/global.css';
     </footer>
 
     <script type="module">
-        import * as THREE from 'three';
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+        
+        // Immediately trigger visibility for elements in viewport on load
+        window.addEventListener('load', () => {
+            const revealElements = document.querySelectorAll('.reveal');
+            revealElements.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top < window.innerHeight && rect.bottom > 0) {
+                    el.classList.add('visible');
+                }
+            });
+        });
         
         // Mobile Menu Toggle
         const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -354,11 +373,20 @@ import '../styles/global.css';
                     entry.target.classList.add('visible');
                 }
             });
-        }, { threshold: 0.1 });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
         revealElements.forEach(el => {
             observer.observe(el);
         });
+        
+        // Fallback - make all elements visible after 2 seconds
+        setTimeout(() => {
+            revealElements.forEach(el => {
+                if (!el.classList.contains('visible')) {
+                    el.classList.add('visible');
+                }
+            });
+        }, 2000);
 
         // Three.js Hero Background
         let scene, camera, renderer, particles;
@@ -422,8 +450,16 @@ import '../styles/global.css';
 
         window.addEventListener('resize', onWindowResize, false);
         
-        initThreeJS();
-        animate();
+        // Initialize Three.js after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initThreeJS();
+                animate();
+            });
+        } else {
+            initThreeJS();
+            animate();
+        }
     </script>
 
 </body>
