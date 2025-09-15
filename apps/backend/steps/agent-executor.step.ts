@@ -4,6 +4,7 @@ import { groqService } from '../services/groq.service';
 import { azureOpenAI } from '../services/azure-openai.service';
 import { agentPrompts } from '../src/mastra/config';
 import { OpenAI } from 'openai';
+import { RiskReportFormatter } from '../services/risk-report-formatter';
 
 const inputSchema = z.object({
   workflowId: z.string(),
@@ -196,11 +197,19 @@ export const handler: Handlers['AgentExecutor'] = async (input, { logger, emit, 
       previousResults
     );
 
+    // Format the response based on agent type for risk assessment workflows
+    let formattedResponse = agentResponse;
+    if (workflow.workflowId === 'riskAssessment' || 
+        workflow.message.toLowerCase().includes('risk') ||
+        workflow.message.toLowerCase().includes('portfolio')) {
+      formattedResponse = RiskReportFormatter.formatRiskAssessment(agent, agentResponse);
+    }
+
     // Store agent result
     const agentResult = {
       agent,
       task,
-      result: agentResponse,
+      result: formattedResponse,
       completedAt: new Date().toISOString(),
     };
 
