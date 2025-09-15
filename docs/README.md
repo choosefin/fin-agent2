@@ -383,4 +383,6 @@ Deployment features:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is proprietary software. The source code is available for viewing and educational purposes only. Commercial use, modification, and distribution are strictly prohibited. See the [LICENSE](LICENSE) file for full terms and restrictions.
+
+For licensing inquiries, please contact: legal@terragonlabs.com
