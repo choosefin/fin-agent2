@@ -1,4 +1,4 @@
-# Intelligence by Finn - AI-Powered Financial Platform
+# Intelligence by Fin - AI-Powered Financial Platform
 
 A hybrid financial AI system combining Next.js frontend with Motia-orchestrated backend services for intelligent portfolio management, market analysis, and trading insights. Powered by Mastra AI framework for multi-agent collaboration and comprehensive financial data integration.
 
